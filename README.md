@@ -14,8 +14,10 @@ The Mac downloads the album, crops each photo for the Voyage's 1072×1448 screen
 - Uses Apple MapKit to show a locality such as `Marrickville` or `Arncliffe`, including international place names.
 - Shows the capture time in the photo's recorded time zone.
 - Uses either PagePress side on the Voyage for previous/next.
+- Uses a fast non-flashing refresh for PagePress navigation, followed by a full cleanup refresh two minutes later.
 - Opens an exit confirmation after a screen tap; tap left to cancel or right to exit.
 - Advances automatically every 30 minutes.
+- Uses a full high-fidelity refresh for automatic photo changes.
 - Enables automatic frontlight from 07:00 to 22:00 and turns the frontlight off overnight.
 - Supports authenticated wireless status, restart, update, diagnostics, disable, and uninstall commands on the LAN.
 

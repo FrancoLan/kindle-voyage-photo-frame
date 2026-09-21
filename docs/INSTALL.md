@@ -77,7 +77,7 @@ RUNTIME="$HOME/Library/Application Support/KindleVoyagePhotoFrame/runtime"
 node "$RUNTIME/manage.mjs" "$RUNTIME/config.json" status
 ```
 
-Within about five minutes, status should show the Kindle, `appState: running`, and app version `0.1.0`.
+Within about five minutes, status should show the Kindle, `appState: running`, and the version from `implementation/kindle/VERSION`.
 
 Test both PagePress sides, a screen tap followed by cancel, and a screen tap followed by exit. Start the frame again from **Photoframe Start**.
 
@@ -88,6 +88,7 @@ Device settings live in `implementation/kindle/config.sh` and are copied during 
 | Setting | Default | Meaning |
 | --- | ---: | --- |
 | `INTERVAL_SECONDS` | `1800` | Automatic photo interval |
+| `MANUAL_FULL_REFRESH_DELAY_SECONDS` | `120` | Delay before a manual change receives a full cleanup refresh |
 | `DAY_START_HOUR` | `7` | Start automatic frontlight |
 | `NIGHT_START_HOUR` | `22` | Turn frontlight off |
 | `DAY_FRONTLIGHT_LEVEL` | `4` | Fallback level before auto mode adjusts |

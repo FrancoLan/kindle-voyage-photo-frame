@@ -70,6 +70,8 @@ current_index=1
 refresh_playlist=1
 sync_needed=1
 first_image=1
+render_mode=full
+manual_full_refresh_delay=${MANUAL_FULL_REFRESH_DELAY_SECONDS:-120}
 
 show_exit_confirmation() {
     "$FBINK" --cls=top=484,left=96,width=880,height=480 -B WHITE >/dev/null 2>&1 || true
@@ -133,7 +135,12 @@ while [ ! -f "$BASE_DIR/disabled" ]; do
         continue
     fi
 
-    /mnt/us/kindle-photoframe/render.sh "$image" || true
+    /mnt/us/kindle-photoframe/render.sh "$image" "$render_mode" || true
+    if [ "$render_mode" = quick ] && [ "$manual_full_refresh_delay" -gt 0 ]; then
+        full_refresh_due=$manual_full_refresh_delay
+    else
+        full_refresh_due=0
+    fi
     printf '%s\n' "$image" > "$STATE_DIR/current-image"
     if [ "$first_image" -eq 1 ]; then
         # Drain startup taps while the first e-ink refresh settles.
@@ -162,6 +169,10 @@ while [ ! -f "$BASE_DIR/disabled" ]; do
             action=$(cat "$STATE_DIR/navigation-command" 2>/dev/null || true)
             rm -f "$STATE_DIR/navigation-command"
             break
+        elif [ "$full_refresh_due" -gt 0 ] && [ "$elapsed" -ge "$full_refresh_due" ]; then
+            /mnt/us/kindle-photoframe/render.sh "$image" refresh || true
+            full_refresh_due=0
+            echo "Deferred full refresh completed for $image."
         fi
         sleep 1
         elapsed=$((elapsed + 1))
@@ -173,7 +184,7 @@ while [ ! -f "$BASE_DIR/disabled" ]; do
         wait_for_exit_confirmation
         action=$CONFIRM_ACTION
         if [ "$action" = "cancel" ]; then
-            /mnt/us/kindle-photoframe/render.sh "$image" || true
+            render_mode=full
             continue
         fi
     fi
@@ -183,17 +194,29 @@ while [ ! -f "$BASE_DIR/disabled" ]; do
             break
             ;;
         previous)
+            render_mode=quick
             current_index=$((current_index - 1))
             if [ "$current_index" -lt 1 ]; then
                 current_index=$photo_count
             fi
             ;;
         reload)
+            render_mode=full
             current_index=1
             refresh_playlist=1
             sync_needed=0
             ;;
-        next|'')
+        next)
+            render_mode=quick
+            current_index=$((current_index + 1))
+            if [ "$current_index" -gt "$photo_count" ]; then
+                current_index=1
+                refresh_playlist=1
+                sync_needed=1
+            fi
+            ;;
+        '')
+            render_mode=full
             current_index=$((current_index + 1))
             if [ "$current_index" -gt "$photo_count" ]; then
                 current_index=1

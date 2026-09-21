@@ -30,6 +30,8 @@ The two ARM helper binaries are included so installation does not require an ARM
 3. The player copies the current playlist before rendering, so a background sync cannot alter the list mid-cycle.
 4. When a new manifest completes, the player reloads the playlist and shows the first updated photo.
 
+PagePress changes draw immediately with a non-flashing GC16 update. The player keeps the cleanup deadline in its main event loop; another manual change replaces that deadline, so a stale timer cannot refresh an older photo. If the same photo remains visible for two minutes, FBInk performs a flashing full-screen GC16 refresh against the existing framebuffer. The 30-minute automatic transition uses flashing GC16 immediately.
+
 ## Wireless control
 
 The Kindle polls `/v1/control/command`. Each command has a UUID, expiry, and action. The manager stores the last completed UUID to make command processing idempotent. Update archives include a manifest of every allowed destination, size, and SHA-256 hash. Paths outside the application, manager, and two launch documents are rejected.
