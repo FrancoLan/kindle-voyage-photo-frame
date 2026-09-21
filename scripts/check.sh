@@ -10,6 +10,7 @@ find implementation scripts -type f -name '*.sh' -print0 | xargs -0 -n 1 sh -n
 find implementation scripts -type f -name '*.mjs' -print0 | xargs -0 -n 1 node --check
 PYTHONPYCACHEPREFIX=/tmp/kindle-voyage-photo-frame-pycache python3 -m py_compile implementation/kindle/native/build-arm-elf.py
 ./scripts/test-render-modes.sh
+./scripts/test-cleanup-storage.sh
 
 SWIFT_TMP=$(mktemp -d /tmp/kindle-voyage-photo-frame-swift.XXXXXX)
 trap 'rm -rf "$SWIFT_TMP"' EXIT HUP INT TERM

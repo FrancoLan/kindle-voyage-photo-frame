@@ -74,7 +74,7 @@ function parseStatus(body, remoteAddress) {
   }
   if (!/^[A-Za-z0-9._-]{1,64}$/.test(values.device || '')) throw new Error('invalid device');
   if (values.commandId && !/^[a-f0-9-]{36}$/.test(values.commandId)) throw new Error('invalid command id');
-  if (values.action && !/^(heartbeat|restart|disable|enable|update|uninstall|diagnose)$/.test(values.action)) throw new Error('invalid action');
+  if (values.action && !/^(heartbeat|restart|disable|enable|update|uninstall|diagnose|cleanup)$/.test(values.action)) throw new Error('invalid action');
   if (!/^(ok|error|running)$/.test(values.result || '')) throw new Error('invalid result');
   if (values.appState && !/^(running|stopped|missing)$/.test(values.appState)) throw new Error('invalid app state');
   return {

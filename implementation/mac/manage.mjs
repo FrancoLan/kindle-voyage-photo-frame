@@ -109,7 +109,7 @@ function commandText(command) {
 async function main() {
   const [configPath, action, ...args] = process.argv.slice(2);
   if (!configPath || !action) {
-    throw new Error('usage: manage.mjs /path/to/config.json status|restart|disable|enable|update|diagnose|uninstall|clear');
+    throw new Error('usage: manage.mjs /path/to/config.json status|restart|disable|enable|update|diagnose|cleanup|uninstall|clear');
   }
   const config = JSON.parse(await readFile(configPath, 'utf8'));
   const controlDir = join(resolve(config.dataDir), 'control');
@@ -129,7 +129,7 @@ async function main() {
     console.log('Pending wireless command cleared.');
     return;
   }
-  if (!['restart', 'disable', 'enable', 'update', 'diagnose', 'uninstall'].includes(action)) throw new Error(`unsupported action: ${action}`);
+  if (!['restart', 'disable', 'enable', 'update', 'diagnose', 'cleanup', 'uninstall'].includes(action)) throw new Error(`unsupported action: ${action}`);
   if (action === 'uninstall' && !args.includes('--confirm-uninstall')) {
     throw new Error('uninstall requires --confirm-uninstall');
   }

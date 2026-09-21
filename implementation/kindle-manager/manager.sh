@@ -123,6 +123,41 @@ collect_diagnostics() {
     return 0
 }
 
+available_kib() {
+    df -k "$KINDLE_ROOT" 2>/dev/null | awk 'NR == 2 { print $4 }' | tr -cd '0-9'
+}
+
+cleanup_storage() {
+    before_kib=$(available_kib)
+    case "$before_kib" in ''|*[!0-9]*) return 84 ;; esac
+
+    # These are rollback copies from earlier wireless updates. The active
+    # application and its authentication files live outside this directory.
+    rm -rf "$BACKUP_DIR"/* || return 85
+
+    # Failed or interrupted commands may leave unpacked archives behind.
+    rm -rf "$STATE_DIR"/update-* "$STATE_DIR"/diagnostic-* || return 86
+
+    removed_cache=0
+    playlist="$APP_DIR/state/playlist"
+    if [ -s "$playlist" ] && [ -d "$APP_DIR/cache" ]; then
+        for cached in "$APP_DIR/cache"/*; do
+            [ -f "$cached" ] || continue
+            if ! grep -F -x -q "$cached" "$playlist"; then
+                rm -f "$cached" || return 87
+                removed_cache=$((removed_cache + 1))
+            fi
+        done
+    fi
+    sync
+
+    after_kib=$(available_kib)
+    case "$after_kib" in ''|*[!0-9]*) return 88 ;; esac
+    reclaimed_kib=$((after_kib - before_kib))
+    [ "$reclaimed_kib" -ge 0 ] || reclaimed_kib=0
+    CLEANUP_DETAIL="Reclaimed ${reclaimed_kib} KiB; removed ${removed_cache} stale cached photos; ${after_kib} KiB available"
+}
+
 stop_app() {
     [ ! -f "$APP_DIR/stop.sh" ] || sh "$APP_DIR/stop.sh" >/dev/null 2>&1 || true
 }
@@ -234,12 +269,17 @@ execute_command() {
     [ "$expires" -ge "$now" ] || return 72
     [ "$(cat "$LAST_COMMAND_FILE" 2>/dev/null || true)" != "$command_id" ] || return 0
     post_status "$command_id" "$action" running 'Command received'
+    command_detail='Command completed'
     case "$action" in
         restart) stop_app; rm -f "$APP_DIR/disabled"; start_app || return 73 ;;
         disable) stop_app ;;
         enable) rm -f "$APP_DIR/disabled"; start_app || return 74 ;;
         update) apply_update "$command_id" "$(field packageSha256)" "$(field packageBytes)" "$(field packagePath)" || return $? ;;
         diagnose) collect_diagnostics "$command_id" || return $? ;;
+        cleanup)
+            cleanup_storage || return $?
+            command_detail=$CLEANUP_DETAIL
+            ;;
         uninstall)
             stop_app
             backup="$BACKUP_DIR/uninstalled-$command_id"
@@ -252,7 +292,7 @@ execute_command() {
     esac
     printf '%s\n' "$command_id" > "$LAST_COMMAND_FILE"
     case "$action" in restart|enable|update) sleep 3 ;; esac
-    post_status "$command_id" "$action" ok 'Command completed'
+    post_status "$command_id" "$action" ok "$command_detail"
 }
 
 last_heartbeat=0

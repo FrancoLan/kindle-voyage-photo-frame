@@ -38,6 +38,8 @@ The Kindle polls `/v1/control/command`. Each command has a UUID, expiry, and act
 
 Diagnostics are capped at 1 MiB and contain application logs, selected power/device properties, process state, disk use, and system version. They do not include the authentication token.
 
+The cleanup command is deliberately limited to manager rollback directories, interrupted command staging paths, and image-cache files absent from the active playlist. It never traverses the Kindle library or removes the active application, configuration, token, or current playlist.
+
 ## Authentication boundary
 
 All HTTP routes require `Authorization: Bearer <token>`, including health and images. The token is generated from 32 random bytes and copied to the Kindle during USB installation. The protocol uses HTTP because the intended boundary is a trusted private LAN; keep port 8787 behind the router firewall and do not expose it to the internet.

@@ -93,7 +93,10 @@ node "$RUNTIME/manage.mjs" "$RUNTIME/config.json" status
 node "$RUNTIME/manage.mjs" "$RUNTIME/config.json" restart
 node "$RUNTIME/manage.mjs" "$RUNTIME/config.json" update
 node "$RUNTIME/manage.mjs" "$RUNTIME/config.json" diagnose
+node "$RUNTIME/manage.mjs" "$RUNTIME/config.json" cleanup
 ```
+
+`cleanup` removes wireless-update rollback copies, interrupted-update staging files, and cached photos no longer present in the current playlist. It keeps the active application, current photos, configuration, and authentication token.
 
 See [Architecture](docs/ARCHITECTURE.md) for the update and authentication design, and [Troubleshooting](docs/TROUBLESHOOTING.md) for logs and recovery.
 
