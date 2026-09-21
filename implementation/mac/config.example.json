@@ -1,0 +1,9 @@
+{
+  "publicAlbumURL": "https://photos.icloud.com/shared/album/REPLACE_WITH_YOUR_PUBLIC_SHARE_KEY",
+  "dataDir": "./data",
+  "authTokenFile": "./data/server-token",
+  "packageSourceDir": ".",
+  "listenHost": "0.0.0.0",
+  "port": 8787,
+  "probeOutput": "/private/tmp/kindle-photoframe-probe.json"
+}

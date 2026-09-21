@@ -1,0 +1,10 @@
+.DS_Store
+*.log
+*.o
+implementation/mac/data/
+implementation/mac/logs/
+implementation/mac/config.local.json
+implementation/mac/metadata-overlay
+implementation/mac/reverse-geocode
+private-backups/
+
