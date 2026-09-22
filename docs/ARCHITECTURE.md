@@ -26,7 +26,7 @@ The two ARM helper binaries are included so installation does not require an ARM
 ## Data flow
 
 1. The Mac sync process creates content-addressed PNG files and a manifest every 10 minutes.
-2. The Kindle downloads only missing or changed files and retains them in `/mnt/us/kindle-photoframe/cache`.
+2. The Kindle downloads only missing or changed files. After the new manifest and playlist are verified and published, it removes cached renderings absent from that playlist.
 3. The player copies the current playlist before rendering, so a background sync cannot alter the list mid-cycle.
 4. When a new manifest completes, the player reloads the playlist and shows the first updated photo.
 

@@ -56,5 +56,11 @@ done < "$manifest_tmp"
 [ -s "$playlist_tmp" ] || exit 30
 mv "$playlist_tmp" "$STATE_DIR/playlist"
 mv "$manifest_tmp" "$STATE_DIR/manifest.tsv"
+for cached in "$CACHE_DIR"/*.png; do
+    [ -f "$cached" ] || continue
+    if ! grep -F -x -q "$cached" "$STATE_DIR/playlist"; then
+        rm -f "$cached" || exit 33
+    fi
+done
 touch "$STATE_DIR/sync-complete"
 echo "Photoframe cache synchronized."

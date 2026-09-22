@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.4.1 — 2026-09-23
+
+- Made successful Kindle synchronization automatically remove cached renderings absent from the new manifest, matching BOOX behavior.
+
 ## 0.4.0 — 2026-09-23
 
 - Added face-priority framing and full-image fallback for groups that cannot fit safely in a portrait crop.
