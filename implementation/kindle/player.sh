@@ -73,6 +73,25 @@ first_image=1
 render_mode=full
 manual_full_refresh_delay=${MANUAL_FULL_REFRESH_DELAY_SECONDS:-120}
 
+choose_interval_seconds() {
+    interval_min=${INTERVAL_MIN_SECONDS:-600}
+    interval_max=${INTERVAL_MAX_SECONDS:-1200}
+    case "$interval_min" in ''|*[!0-9]*) interval_min=600 ;; esac
+    case "$interval_max" in ''|*[!0-9]*) interval_max=1200 ;; esac
+    if [ "$interval_max" -lt "$interval_min" ]; then
+        interval_max=$interval_min
+    fi
+    interval_range=$((interval_max - interval_min + 1))
+    interval_random=
+    if [ -r /dev/urandom ]; then
+        interval_random=$(od -An -N2 -tu2 /dev/urandom 2>/dev/null | tr -cd '0-9')
+    fi
+    case "$interval_random" in
+        ''|*[!0-9]*) interval_random=$(($(date +%s) + $$)) ;;
+    esac
+    printf '%s\n' $((interval_min + interval_random % interval_range))
+}
+
 show_exit_confirmation() {
     "$FBINK" --cls=top=484,left=96,width=880,height=480 -B WHITE >/dev/null 2>&1 || true
     "$FBINK" -S 3 -m -M -y -2 -p "EXIT PHOTO MODE?" >/dev/null 2>&1 || true
@@ -153,7 +172,9 @@ while [ ! -f "$BASE_DIR/disabled" ]; do
 
     action=
     elapsed=0
-    while [ "$elapsed" -lt "$INTERVAL_SECONDS" ] && [ ! -f "$BASE_DIR/disabled" ]; do
+    interval_seconds=$(choose_interval_seconds)
+    echo "Next automatic photo change in ${interval_seconds} seconds."
+    while [ "$elapsed" -lt "$interval_seconds" ] && [ ! -f "$BASE_DIR/disabled" ]; do
         if [ -f "$STATE_DIR/exit-requested" ]; then
             action=exit
             break

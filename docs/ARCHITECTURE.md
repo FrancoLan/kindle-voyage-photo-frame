@@ -30,7 +30,7 @@ The two ARM helper binaries are included so installation does not require an ARM
 3. The player copies the current playlist before rendering, so a background sync cannot alter the list mid-cycle.
 4. When a new manifest completes, the player reloads the playlist and shows the first updated photo.
 
-PagePress changes draw immediately with a non-flashing GC16 update. The player keeps the cleanup deadline in its main event loop; another manual change replaces that deadline, so a stale timer cannot refresh an older photo. If the same photo remains visible for two minutes, FBInk performs a flashing full-screen GC16 refresh against the existing framebuffer. The 30-minute automatic transition uses flashing GC16 immediately.
+PagePress changes draw immediately with a non-flashing GC16 update. The player keeps the cleanup deadline in its main event loop; another manual change replaces that deadline, so a stale timer cannot refresh an older photo. If the same photo remains visible for two minutes, FBInk performs a flashing full-screen GC16 refresh against the existing framebuffer. After each displayed photo, the player selects a new automatic interval from 10 through 20 minutes; that automatic transition uses flashing GC16 immediately.
 
 ## Wireless control
 

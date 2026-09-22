@@ -16,7 +16,7 @@ The Mac downloads the album, crops each photo for the Voyage's 1072×1448 screen
 - Uses either PagePress side on the Voyage for previous/next.
 - Uses a fast non-flashing refresh for PagePress navigation, followed by a full cleanup refresh two minutes later.
 - Opens an exit confirmation after a screen tap; tap left to cancel or right to exit.
-- Advances automatically every 30 minutes.
+- Advances automatically after a newly selected random delay between 10 and 20 minutes.
 - Uses a full high-fidelity refresh for automatic photo changes.
 - Enables automatic frontlight from 07:00 to 22:00 and turns the frontlight off overnight.
 - Supports authenticated wireless status, restart, update, diagnostics, disable, and uninstall commands on the LAN.
