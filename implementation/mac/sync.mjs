@@ -10,7 +10,7 @@ import { extractPhotos, fetchAllZoneRecords, resolvePublicShare } from './icloud
 
 const execFileAsync = promisify(execFile);
 const SCRIPT_DIR = dirname(fileURLToPath(import.meta.url));
-const RENDER_VERSION = 'voyage-1072x1448-gray-place-metadata-v3';
+const RENDER_VERSION = 'voyage-1072x1448-gray-face-edge-fill-v5';
 const MAX_SOURCE_BYTES = 100 * 1024 * 1024;
 
 async function atomicWrite(path, contents, mode = 0o644) {
@@ -79,19 +79,11 @@ async function imageDimensions(path) {
   return { width, height };
 }
 
-async function renderForVoyage(source, output, workDir, metadataLabel) {
+async function renderForVoyage(source, output, workDir, metadataLabel, renderMode = 'auto') {
   const decoded = join(workDir, 'decoded.png');
-  const scaled = join(workDir, 'scaled.png');
-  const cropped = join(workDir, 'cropped.png');
   const annotated = join(workDir, 'annotated.png');
   await execFileAsync('/usr/bin/sips', ['-s', 'format', 'png', source, '-o', decoded]);
-  const { width, height } = await imageDimensions(decoded);
-  const scale = Math.max(1072 / width, 1448 / height);
-  const scaledWidth = Math.ceil(width * scale);
-  const scaledHeight = Math.ceil(height * scale);
-  await execFileAsync('/usr/bin/sips', ['-z', String(scaledHeight), String(scaledWidth), decoded, '-o', scaled]);
-  await execFileAsync('/usr/bin/sips', ['-c', '1448', '1072', scaled, '-o', cropped]);
-  await execFileAsync(join(SCRIPT_DIR, 'metadata-overlay'), [cropped, annotated, metadataLabel]);
+  await execFileAsync(join(SCRIPT_DIR, 'metadata-overlay'), [decoded, annotated, metadataLabel, renderMode]);
   await execFileAsync('/usr/bin/sips', [
     '-m', '/System/Library/ColorSync/Profiles/Generic Gray Gamma 2.2 Profile.icc',
     '-s', 'format', 'png', annotated, '-o', output,
@@ -186,7 +178,8 @@ async function sync(config) {
   const items = [];
   for (const photo of photos) {
     const metadata = await metadataForPhoto(photo, stagingDir, geocodeCache);
-    const cacheKey = createHash('sha256').update(`${photo.id}\0${photo.resource.fileChecksum || photo.resource.referenceChecksum || photo.resource.size}\0${RENDER_VERSION}\0${metadata.label}`).digest('hex');
+    const renderMode = Array.isArray(config.fitPhotoIds) && config.fitPhotoIds.includes(photo.id) ? 'fit' : 'auto';
+    const cacheKey = createHash('sha256').update(`${photo.id}\0${photo.resource.fileChecksum || photo.resource.referenceChecksum || photo.resource.size}\0${RENDER_VERSION}\0${renderMode}\0${metadata.label}`).digest('hex');
     const priorItem = prior?.items?.find((item) => item.cacheKey === cacheKey);
     if (priorItem) {
       try {
@@ -203,7 +196,7 @@ async function sync(config) {
     const source = join(workDir, 'source.image');
     const rendered = join(workDir, 'rendered.png');
     await downloadPhoto(photo, source);
-    await renderForVoyage(source, rendered, workDir, metadata.label);
+    await renderForVoyage(source, rendered, workDir, metadata.label, renderMode);
     const sha256 = await sha256File(rendered);
     const bytes = (await stat(rendered)).size;
     const finalPath = join(imageDir, `${sha256}.png`);
@@ -216,6 +209,7 @@ async function sync(config) {
       capturedAt: photo.capturedAt,
       capturedAtDisplay: metadata.capturedAtText,
       locationDisplay: metadata.locationText,
+      renderMode,
       width: 1072,
       height: 1448,
       path: `/v1/images/${sha256}.png`,

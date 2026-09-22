@@ -2,7 +2,7 @@
 
 Turn a jailbroken Kindle Voyage into a Wi-Fi photo frame backed by an iCloud Shared Album and a Mac mini.
 
-The Mac downloads the album, crops each photo for the Voyage's 1072×1448 screen, adds the photo's local place and time when available, converts it to grayscale, and serves a signed manifest over the local network. The Kindle keeps a verified local cache, so the slideshow continues when the Mac is asleep or disconnected.
+The Mac downloads the album, applies face-aware framing for the Voyage's 1072×1448 screen, adds the photo's local place and time when available, converts it to grayscale, and serves a signed manifest over the local network. The Kindle keeps a verified local cache, so the slideshow continues when the Mac is asleep or disconnected.
 
 > **Project status:** personal project released for experimentation. The current build has been tested on one Kindle Voyage running firmware 5.13.6 and one Apple silicon Mac. Other Kindle models and firmware versions are untested.
 
@@ -10,7 +10,7 @@ The Mac downloads the album, crops each photo for the Voyage's 1072×1448 screen
 
 - Syncs static photos from a public iCloud Shared Album every 10 minutes.
 - Stores photos on the Kindle for offline playback.
-- Fits and center-crops images for the Voyage screen.
+- Prioritizes detected faces when cropping; if a group cannot fit safely, preserves the full photo and fills the unused area with darkened colors sampled from the photo edges.
 - Uses Apple MapKit to show a locality such as `Marrickville` or `Arncliffe`, including international place names.
 - Shows the capture time in the photo's recorded time zone.
 - Uses either PagePress side on the Voyage for previous/next.
@@ -99,6 +99,8 @@ node "$RUNTIME/manage.mjs" "$RUNTIME/config.json" cleanup
 `cleanup` removes wireless-update rollback copies, interrupted-update staging files, and cached photos no longer present in the current playlist. It keeps the active application, current photos, configuration, and authentication token.
 
 See [Architecture](docs/ARCHITECTURE.md) for the update and authentication design, and [Troubleshooting](docs/TROUBLESHOOTING.md) for logs and recovery.
+
+Shared photo-frame behavior is kept in parity with the BOOX N96 edition. Any intentional user-visible divergence must be approved explicitly; see [Cross-device parity](docs/CROSS_DEVICE_PARITY.md).
 
 ## Known limitations
 

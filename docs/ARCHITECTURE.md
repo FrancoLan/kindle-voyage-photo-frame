@@ -3,8 +3,8 @@
 ## Mac components
 
 - `icloud-source.mjs` resolves the public share and reads all photo records.
-- `sync.mjs` downloads each source image, extracts capture metadata, asks MapKit for a locality, renders a 1072×1448 grayscale PNG, and publishes a SHA-256 manifest.
-- `metadata-overlay.swift` draws the place and capture time at the lower-right edge.
+- `sync.mjs` downloads each source image, extracts capture metadata, asks MapKit for a locality, renders a 1072×1448 grayscale PNG, and publishes a SHA-256 manifest. It can force difficult photos into full-image mode through `fitPhotoIds`.
+- `metadata-overlay.swift` detects faces, shifts a safe crop toward them, or preserves the complete photo when the people cannot fit inside a portrait crop. Letterbox areas use darkened average colors sampled from the adjacent image edges, with black as the fallback. It draws place and capture time in a high-contrast lower-right label.
 - `reverse-geocode.swift` converts coordinates into a human-readable locality with Apple MapKit.
 - `server.mjs` serves manifests, images, commands, update archives, status, and diagnostic uploads.
 - `manage.mjs` creates authenticated commands and reproducible update archives.
