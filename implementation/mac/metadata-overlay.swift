@@ -4,6 +4,14 @@ import Foundation
 import ImageIO
 import Vision
 
+if CommandLine.arguments.count == 3 && CommandLine.arguments[1] == "--orientation" {
+    guard let source = CGImageSourceCreateWithURL(URL(fileURLWithPath: CommandLine.arguments[2]) as CFURL, nil),
+          let properties = CGImageSourceCopyPropertiesAtIndex(source, 0, nil) as? [CFString: Any]
+    else { exit(3) }
+    print((properties[kCGImagePropertyOrientation] as? NSNumber)?.intValue ?? 1)
+    exit(0)
+}
+
 guard CommandLine.arguments.count == 4 || CommandLine.arguments.count == 5 else {
     FileHandle.standardError.write(Data("usage: metadata-overlay INPUT OUTPUT LABEL [auto|fit]\n".utf8))
     exit(2)
@@ -20,10 +28,29 @@ guard renderMode == "auto" || renderMode == "fit" else {
 
 guard
     let imageSource = CGImageSourceCreateWithURL(URL(fileURLWithPath: input) as CFURL, nil),
-    let sourceCG = CGImageSourceCreateImageAtIndex(imageSource, 0, nil)
+    let rawSourceCG = CGImageSourceCreateImageAtIndex(imageSource, 0, nil)
 else {
     FileHandle.standardError.write(Data("unable to open input image\n".utf8))
     exit(3)
+}
+
+let properties = CGImageSourceCopyPropertiesAtIndex(imageSource, 0, nil) as? [CFString: Any]
+let maximumDimension = max(
+    (properties?[kCGImagePropertyPixelWidth] as? NSNumber)?.intValue ?? rawSourceCG.width,
+    (properties?[kCGImagePropertyPixelHeight] as? NSNumber)?.intValue ?? rawSourceCG.height
+)
+let thumbnailOptions: [CFString: Any] = [
+    kCGImageSourceCreateThumbnailFromImageAlways: true,
+    kCGImageSourceCreateThumbnailWithTransform: true,
+    kCGImageSourceThumbnailMaxPixelSize: maximumDimension,
+]
+guard let sourceCG = CGImageSourceCreateThumbnailAtIndex(imageSource, 0, thumbnailOptions as CFDictionary) else {
+    FileHandle.standardError.write(Data("unable to normalize image orientation\n".utf8))
+    exit(3)
+}
+if ProcessInfo.processInfo.environment["PHOTOFRAME_DEBUG_ORIENTATION"] == "1" {
+    let orientation = (properties?[kCGImagePropertyOrientation] as? NSNumber)?.intValue ?? 1
+    FileHandle.standardError.write(Data("orientation=\(orientation) raw=\(rawSourceCG.width)x\(rawSourceCG.height) display=\(sourceCG.width)x\(sourceCG.height)\n".utf8))
 }
 
 let canvasSize = NSSize(width: 1072, height: 1448)

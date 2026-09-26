@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.4.4 — 2026-09-26
+
+- Apply JPEG EXIF rotation before rendering shared-album photos, so portrait images remain upright on Kindle and BOOX.
+
 ## 0.4.3 — 2026-09-26
 
 - Check for new shared-album photos every minute during playback and refresh the screen only when the playlist changes.
