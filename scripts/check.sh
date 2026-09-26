@@ -16,6 +16,7 @@ PYTHONPYCACHEPREFIX=/tmp/kindle-voyage-photo-frame-pycache python3 -m py_compile
 SWIFT_TMP=$(mktemp -d /tmp/kindle-voyage-photo-frame-swift.XXXXXX)
 trap 'rm -rf "$SWIFT_TMP"' EXIT HUP INT TERM
 CLANG_MODULE_CACHE_PATH="$SWIFT_TMP/module-cache" swiftc implementation/mac/metadata-overlay.swift -o "$SWIFT_TMP/metadata-overlay"
+"$SWIFT_TMP/metadata-overlay" --tone-tests
 CLANG_MODULE_CACHE_PATH="$SWIFT_TMP/module-cache" swiftc -parse-as-library implementation/mac/reverse-geocode.swift -o "$SWIFT_TMP/reverse-geocode"
 
 if rg -n '/Users/[^/]+|192\.168\.1\.106|server-token[[:space:]]*:' \

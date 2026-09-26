@@ -4,6 +4,94 @@ import Foundation
 import ImageIO
 import Vision
 
+private let shadowLiftAnchors: [(Int, Int)] = [
+    (0, 0), (8, 20), (24, 37), (48, 66), (80, 103),
+    (128, 151), (180, 193), (220, 226), (255, 255),
+]
+
+private func shadowLiftValue(_ input: Int) -> Int {
+    for index in 1..<shadowLiftAnchors.count {
+        let (x1, y1) = shadowLiftAnchors[index]
+        if input <= x1 {
+            let (x0, y0) = shadowLiftAnchors[index - 1]
+            return Int((Double(y0) + Double(y1 - y0) * Double(input - x0) / Double(x1 - x0)).rounded())
+        }
+    }
+    return 255
+}
+
+private func percentile(_ histogram: [Int], _ fraction: Double) -> Int {
+    let target = max(1, Int((Double(histogram.reduce(0, +)) * fraction).rounded(.up)))
+    var accumulated = 0
+    for (value, count) in histogram.enumerated() {
+        accumulated += count
+        if accumulated >= target { return value }
+    }
+    return 255
+}
+
+private func shouldLiftShadows(median: Int, p95: Int) -> Bool {
+    median < 40 && p95 >= 80
+}
+
+private func shadowLiftedImage(_ image: CGImage) -> (CGImage, Int, Int, Int, Bool) {
+    let width = image.width
+    let height = image.height
+    let colorSpace = CGColorSpaceCreateDeviceGray()
+    var pixels = [UInt8](repeating: 0, count: width * height)
+    let rendered = pixels.withUnsafeMutableBytes { bytes -> Bool in
+        guard let baseAddress = bytes.baseAddress,
+              let context = CGContext(
+                  data: baseAddress,
+                  width: width,
+                  height: height,
+                  bitsPerComponent: 8,
+                  bytesPerRow: width,
+                  space: colorSpace,
+                  bitmapInfo: CGImageAlphaInfo.none.rawValue
+              ) else { return false }
+        context.interpolationQuality = .high
+        context.draw(image, in: CGRect(x: 0, y: 0, width: width, height: height))
+        return true
+    }
+    guard rendered else { return (image, 0, 0, 255, false) }
+
+    var histogram = [Int](repeating: 0, count: 256)
+    for pixel in pixels { histogram[Int(pixel)] += 1 }
+    let p5 = percentile(histogram, 0.05)
+    let median = percentile(histogram, 0.50)
+    let p95 = percentile(histogram, 0.95)
+    let shouldLift = shouldLiftShadows(median: median, p95: p95)
+    guard shouldLift else { return (image, median, p5, p95, false) }
+
+    let adjusted = pixels.map { UInt8(shadowLiftValue(Int($0))) }
+    guard let provider = CGDataProvider(data: Data(adjusted) as CFData),
+          let output = CGImage(
+              width: width,
+              height: height,
+              bitsPerComponent: 8,
+              bitsPerPixel: 8,
+              bytesPerRow: width,
+              space: colorSpace,
+              bitmapInfo: CGBitmapInfo(rawValue: CGImageAlphaInfo.none.rawValue),
+              provider: provider,
+              decode: nil,
+              shouldInterpolate: true,
+              intent: .defaultIntent
+          ) else { return (image, median, p5, p95, false) }
+    return (output, median, p5, p95, true)
+}
+
+if CommandLine.arguments.count == 2 && CommandLine.arguments[1] == "--tone-tests" {
+    precondition(shadowLiftValue(0) == 0 && shadowLiftValue(255) == 255, "tone curve must preserve black and white")
+    precondition(shadowLiftValue(8) == 20 && shadowLiftValue(48) == 66, "tone curve must match the approved preview")
+    precondition(shouldLiftShadows(median: 8, p95: 145), "dark photos should be lifted")
+    precondition(!shouldLiftShadows(median: 50, p95: 170), "high-contrast reference should remain unchanged")
+    precondition(!shouldLiftShadows(median: 8, p95: 60), "near-black frames should remain unchanged")
+    print("Shadow tone-mapping tests passed.")
+    exit(0)
+}
+
 if CommandLine.arguments.count == 3 && CommandLine.arguments[1] == "--orientation" {
     guard let source = CGImageSourceCreateWithURL(URL(fileURLWithPath: CommandLine.arguments[2]) as CFURL, nil),
           let properties = CGImageSourceCopyPropertiesAtIndex(source, 0, nil) as? [CFString: Any]
@@ -44,9 +132,14 @@ let thumbnailOptions: [CFString: Any] = [
     kCGImageSourceCreateThumbnailWithTransform: true,
     kCGImageSourceThumbnailMaxPixelSize: maximumDimension,
 ]
-guard let sourceCG = CGImageSourceCreateThumbnailAtIndex(imageSource, 0, thumbnailOptions as CFDictionary) else {
+guard let decodedCG = CGImageSourceCreateThumbnailAtIndex(imageSource, 0, thumbnailOptions as CFDictionary) else {
     FileHandle.standardError.write(Data("unable to normalize image orientation\n".utf8))
     exit(3)
+}
+let toneResult = shadowLiftedImage(decodedCG)
+let sourceCG = toneResult.0
+if ProcessInfo.processInfo.environment["PHOTOFRAME_DEBUG_TONE"] == "1" {
+    FileHandle.standardError.write(Data("tone histogram p5=\(toneResult.2) p50=\(toneResult.1) p95=\(toneResult.3) shadowLift=\(toneResult.4)\n".utf8))
 }
 if ProcessInfo.processInfo.environment["PHOTOFRAME_DEBUG_ORIENTATION"] == "1" {
     let orientation = (properties?[kCGImagePropertyOrientation] as? NSNumber)?.intValue ?? 1

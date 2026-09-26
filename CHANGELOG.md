@@ -1,5 +1,10 @@
 # Changelog
 
+## Unreleased
+
+- Apply a gentle shadow-lift curve only to photos with a very dark luminance median and sufficient highlight range; leave normal/high-contrast images unchanged.
+- Re-render cached photos under a new renderer cache version so the Mac service regenerates both Kindle and BOOX images.
+
 ## 0.4.9 — 2026-09-26
 
 - Check the ambient-light sensor every five seconds and only write state when the frontlight policy changes.
