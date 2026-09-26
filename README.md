@@ -19,7 +19,7 @@ The Mac downloads the album, applies face-aware framing for the Voyage's 1072×1
 - Opens an exit confirmation after a screen tap; tap left to cancel or right to exit.
 - Advances automatically after a newly selected random delay between 10 and 20 minutes.
 - Uses a full high-fidelity refresh for automatic photo changes.
-- Turns the frontlight off below 60 lux and restores automatic brightness above 100 lux, with the previous state held between those thresholds.
+- Turns the frontlight off below 60 lux and restores automatic brightness above 100 lux, checking every five seconds and preserving the previous state between those thresholds.
 - Supports authenticated wireless status, restart, update, diagnostics, disable, and uninstall commands on the LAN.
 
 ## How it works

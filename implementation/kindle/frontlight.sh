@@ -29,6 +29,15 @@ set_frontlight() {
     lipc-set-prop -i com.lab126.powerd flIntensity "$value" >/dev/null 2>&1 || true
 }
 
+record_policy_status() {
+    status_file="$STATE_DIR/frontlight-status.tsv"
+    old_condition=$(cut -f2 "$status_file" 2>/dev/null || true)
+    old_target=$(cut -f4 "$status_file" 2>/dev/null || true)
+    if [ "$old_condition" != "$condition" ] || [ "$old_target" != "$target" ]; then
+        printf '%s\t%s\t%s\t%s\n' "$(date '+%Y-%m-%d %H:%M:%S')" "$condition" "$lux" "$target" > "$status_file"
+    fi
+}
+
 restore_automatic_frontlight() {
     current=$(lipc-get-prop -i com.lab126.powerd flIntensity 2>/dev/null || true)
     if [ -f "$STATE_DIR/frontlight-forced-off" ] || [ "$current" = 0 ]; then
@@ -39,7 +48,8 @@ restore_automatic_frontlight() {
         fi
         set_frontlight "$level"
     fi
-    lipc-set-prop -i com.lab126.powerd flAuto 1 >/dev/null 2>&1 || true
+    current_auto=$(lipc-get-prop -i com.lab126.powerd flAuto 2>/dev/null || true)
+    [ "$current_auto" = 1 ] || lipc-set-prop -i com.lab126.powerd flAuto 1 >/dev/null 2>&1 || true
     rm -f "$STATE_DIR/frontlight-forced-off"
 }
 
@@ -60,14 +70,18 @@ apply_sensor_policy() {
     save_settings
     lux=$(lipc-get-prop -i com.lab126.powerd alsLux 2>/dev/null || true)
     if ! valid_lux "$lux"; then
-        printf '%s\tunknown\t%s\tunavailable\n' "$(date '+%Y-%m-%d %H:%M:%S')" "$lux" > "$STATE_DIR/frontlight-status.tsv"
+        condition=unknown
+        target=unavailable
+        record_policy_status
         return 0
     fi
 
     if [ "$lux" -le "$FRONTLIGHT_DARK_LUX" ]; then
-        lipc-set-prop -i com.lab126.powerd flAuto 0 >/dev/null 2>&1 || true
-        set_frontlight 0
-        touch "$STATE_DIR/frontlight-forced-off"
+        current_auto=$(lipc-get-prop -i com.lab126.powerd flAuto 2>/dev/null || true)
+        [ "$current_auto" = 0 ] || lipc-set-prop -i com.lab126.powerd flAuto 0 >/dev/null 2>&1 || true
+        current=$(lipc-get-prop -i com.lab126.powerd flIntensity 2>/dev/null || true)
+        [ "$current" = 0 ] || set_frontlight 0
+        [ -f "$STATE_DIR/frontlight-forced-off" ] || touch "$STATE_DIR/frontlight-forced-off"
         condition=dark
         target=0
     elif [ "$lux" -ge "$FRONTLIGHT_BRIGHT_LUX" ]; then
@@ -84,7 +98,7 @@ apply_sensor_policy() {
             target=auto
         fi
     fi
-    printf '%s\t%s\t%s\t%s\n' "$(date '+%Y-%m-%d %H:%M:%S')" "$condition" "$lux" "$target" > "$STATE_DIR/frontlight-status.tsv"
+    record_policy_status
 }
 
 restore_settings() {

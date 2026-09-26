@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.4.9 — 2026-09-26
+
+- Check the ambient-light sensor every five seconds and only write state when the frontlight policy changes.
+
 ## 0.4.8 — 2026-09-26
 
 - Set the low-light cutoff to 60 lux based on the Voyage sensor reading in the user's current environment.
