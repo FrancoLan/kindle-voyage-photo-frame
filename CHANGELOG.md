@@ -1,5 +1,21 @@
 # Changelog
 
+## 0.4.8 — 2026-09-26
+
+- Set the low-light cutoff to 60 lux based on the Voyage sensor reading in the user's current environment.
+
+## 0.4.7 — 2026-09-26
+
+- Ensure a single ambient-light watcher is active and recover automatic brightness in the hysteresis band if the prior schedule left the light off.
+
+## 0.4.6 — 2026-09-26
+
+- Use 50/100 lux off/on thresholds for the Voyage ambient-light sensor, with hysteresis between them.
+
+## 0.4.5 — 2026-09-26
+
+- Turn the frontlight off at low ambient light and restore automatic brightness when the room is bright, using the Voyage ambient-light sensor instead of a time schedule.
+
 ## 0.4.4 — 2026-09-26
 
 - Apply JPEG EXIF rotation before rendering shared-album photos, so portrait images remain upright on Kindle and BOOX.

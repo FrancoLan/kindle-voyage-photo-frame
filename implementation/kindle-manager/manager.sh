@@ -94,16 +94,39 @@ collect_diagnostics() {
         uname -a 2>&1 || true
         df -h "$KINDLE_ROOT" 2>&1 || true
     } > "$diagnostic_dir/summary.txt"
-    for prop in battLevel battStateInfo battTemperature isCharging state status preventScreenSaver flAuto flIntensity flMaxIntensity; do
+    for prop in battLevel battStateInfo battTemperature isCharging state status preventScreenSaver alsNightlightEn alsLux flAuto flIntensity flRawIntensity flMaxIntensity; do
         printf '%s\t' "$prop" >> "$diagnostic_dir/powerd-properties.tsv"
         lipc-get-prop com.lab126.powerd "$prop" >> "$diagnostic_dir/powerd-properties.tsv" 2>&1 || true
     done
+    lipc-probe -a 2>/dev/null | grep -iE 'ambient|illumin|lux|sensor|light|flRawIntensity' > "$diagnostic_dir/ambient-lipc-properties.txt" || true
     for prop in fsrkeypadEnable fsrkeypadNextEnable fsrkeypadPrevEnable; do
         printf '%s\t' "$prop" >> "$diagnostic_dir/deviced-properties.tsv"
         lipc-get-prop com.lab126.deviced "$prop" >> "$diagnostic_dir/deviced-properties.tsv" 2>&1 || true
     done
+    {
+        for root in /sys/class/als /sys/bus/iio/devices /sys/class/backlight /sys/devices/platform; do
+            [ -d "$root" ] || continue
+            find "$root" -maxdepth 7 -type f \
+                \( -iname '*lux*' -o -iname '*illumin*' -o -iname '*ambient*' -o -iname '*light*' \) \
+                2>/dev/null | head -n 80
+        done
+        for path in /sys/class/backlight/max77696-bl/brightness /sys/class/backlight/max77696-bl/actual_brightness; do
+            [ ! -r "$path" ] || printf '%s\n' "$path"
+        done
+    } | sort -u > "$diagnostic_dir/ambient-light-paths.txt"
+    while IFS= read -r sensor_path; do
+        [ -n "$sensor_path" ] || continue
+        printf '%s\t' "$sensor_path" >> "$diagnostic_dir/ambient-light-values.tsv"
+        head -c 128 "$sensor_path" >> "$diagnostic_dir/ambient-light-values.tsv" 2>&1 || true
+        printf '\n' >> "$diagnostic_dir/ambient-light-values.tsv"
+    done < "$diagnostic_dir/ambient-light-paths.txt"
     ps > "$diagnostic_dir/processes.txt" 2>&1 || true
     [ ! -f "$APP_DIR/state/frontlight-status.tsv" ] || cp "$APP_DIR/state/frontlight-status.tsv" "$diagnostic_dir/frontlight-status.tsv"
+    {
+        sha256sum "$APP_DIR/frontlight.sh" 2>/dev/null || true
+        grep -E 'apply_sensor_policy|alsLux|FRONTLIGHT_DARK_LUX|FRONTLIGHT_BRIGHT_LUX|apply_schedule|DAY_START_HOUR' \
+            "$APP_DIR/frontlight.sh" "$APP_DIR/config.sh" 2>/dev/null || true
+    } > "$diagnostic_dir/frontlight-build.txt"
     for name in player buttons sync input-suppression manual-start manual-stop frontlight pagepress-mode ui-runtime; do
         [ ! -f "$APP_DIR/state/$name.log" ] || tail -n 400 "$APP_DIR/state/$name.log" > "$diagnostic_dir/logs/$name.log" 2>&1
     done
