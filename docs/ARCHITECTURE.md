@@ -25,7 +25,7 @@ The two ARM helper binaries are included so installation does not require an ARM
 
 ## Data flow
 
-1. The Mac sync process creates content-addressed PNG files and a manifest every 10 minutes.
+1. The Mac sync process checks iCloud every minute and creates content-addressed PNG files and a manifest when needed.
 2. The Kindle downloads only missing or changed files. After the new manifest and playlist are verified and published, it removes cached renderings absent from that playlist.
 3. The player copies the current playlist before rendering, so a background sync cannot alter the list mid-cycle.
 4. When a new manifest completes, the player immediately plays newly added photos, then resumes after the photo that was showing when the sync completed. The rest of the playlist keeps its captured-time order.

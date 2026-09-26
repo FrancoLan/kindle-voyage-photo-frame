@@ -6,6 +6,7 @@ set -u
 LOCK_DIR="$STATE_DIR/player.lock"
 frame_entered=0
 sync_pid=
+last_sync_attempt=$(date +%s)
 PLAYLIST="$STATE_DIR/playback-playlist"
 NORMAL_PLAYLIST="$STATE_DIR/normal-playback-playlist"
 NEW_PHOTOS="$STATE_DIR/new-photos"
@@ -135,6 +136,7 @@ while [ ! -f "$BASE_DIR/disabled" ]; do
         if [ "$sync_needed" -eq 1 ] && { [ -z "$sync_pid" ] || ! kill -0 "$sync_pid" 2>/dev/null; }; then
             sh "$BASE_DIR/sync.sh" >> "$STATE_DIR/sync.log" 2>&1 &
             sync_pid=$!
+            last_sync_attempt=$(date +%s)
         fi
         sync_needed=0
         if [ -s "$STATE_DIR/playlist" ]; then
@@ -202,6 +204,17 @@ while [ ! -f "$BASE_DIR/disabled" ]; do
     interval_seconds=$(choose_interval_seconds)
     echo "Next automatic photo change in ${interval_seconds} seconds."
     while [ "$elapsed" -lt "$interval_seconds" ] && [ ! -f "$BASE_DIR/disabled" ]; do
+        sync_interval=${SYNC_INTERVAL_SECONDS:-60}
+        case "$sync_interval" in ''|*[!0-9]*) sync_interval=60 ;; esac
+        [ "$sync_interval" -ge 30 ] || sync_interval=30
+        now=$(date +%s)
+        if [ "$((now - last_sync_attempt))" -ge "$sync_interval" ]; then
+            last_sync_attempt=$now
+            if [ -z "$sync_pid" ] || ! kill -0 "$sync_pid" 2>/dev/null; then
+                sh "$BASE_DIR/sync.sh" >> "$STATE_DIR/sync.log" 2>&1 &
+                sync_pid=$!
+            fi
+        fi
         if [ -f "$STATE_DIR/exit-requested" ]; then
             action=exit
             break

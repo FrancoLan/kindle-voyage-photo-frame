@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.4.3 — 2026-09-26
+
+- Check for new shared-album photos every minute during playback and refresh the screen only when the playlist changes.
+
 ## 0.4.2 — 2026-09-26
 
 - Play newly synchronized photos immediately, then resume the existing playlist sequence.

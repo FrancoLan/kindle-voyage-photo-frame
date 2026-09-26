@@ -15,7 +15,9 @@ Confirm that the public album contains a static photo and that the Mac can reach
 
 ## New photos do not arrive
 
-The Mac sync runs every 10 minutes. The Kindle checks for photos when the frame starts and after cycling through the current playlist. Run the Mac sync immediately with:
+The Mac checks the album every minute. While the frame is open, the Kindle checks the published manifest every minute independently of the slideshow interval. A recognized new photo is downloaded and shown immediately; if the device or Mac is offline/asleep, it resumes on the next check after reconnecting.
+
+Run the Mac sync immediately with:
 
 ```sh
 RUNTIME="$HOME/Library/Application Support/KindleVoyagePhotoFrame/runtime"

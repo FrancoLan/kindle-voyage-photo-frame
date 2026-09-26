@@ -70,6 +70,10 @@ done < "$manifest_tmp"
 
 [ -s "$playlist_tmp" ] || exit 30
 mv "$playlist_tmp" "$STATE_DIR/playlist"
+playlist_changed=1
+if cmp -s "$STATE_DIR/previous-playlist.tmp.$$" "$STATE_DIR/playlist"; then
+    playlist_changed=0
+fi
 if [ -s "$new_photos_tmp" ]; then
     mv "$new_photos_tmp" "$STATE_DIR/new-photos"
 else
@@ -83,5 +87,7 @@ for cached in "$CACHE_DIR"/*.png; do
         rm -f "$cached" || exit 33
     fi
 done
-touch "$STATE_DIR/sync-complete"
+if [ "$playlist_changed" -eq 1 ]; then
+    touch "$STATE_DIR/sync-complete"
+fi
 echo "Photoframe cache synchronized."

@@ -8,7 +8,7 @@ The Mac downloads the album, applies face-aware framing for the Voyage's 1072×1
 
 ## Features
 
-- Syncs static photos from a public iCloud Shared Album every 10 minutes.
+- Checks a public iCloud Shared Album for new static photos every minute; connected devices sync promptly after recognition.
 - Stores photos on the Kindle for offline playback.
 - Removes obsolete rendered photos only after a complete verified synchronization succeeds.
 - Prioritizes detected faces when cropping; if a group cannot fit safely, preserves the full photo and fills the unused area with darkened colors sampled from the photo edges.
