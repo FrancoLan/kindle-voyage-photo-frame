@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.4.2 — 2026-09-26
+
+- Play newly synchronized photos immediately, then resume the existing playlist sequence.
+
 ## 0.4.1 — 2026-09-23
 
 - Made successful Kindle synchronization automatically remove cached renderings absent from the new manifest, matching BOOX behavior.

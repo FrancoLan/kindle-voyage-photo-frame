@@ -5,6 +5,7 @@ The Kindle Voyage and BOOX N96 editions share one product specification. Shared 
 The following behavior stays aligned:
 
 - One iCloud Shared Album and content manifest.
+- Newly added photos play immediately after sync, then playback resumes after the interrupted photo in the existing sequence.
 - A newly randomized 10–20 minute automatic interval for every photo.
 - Locality and capture-local time overlays.
 - Face-priority framing and full-image fallback when people cannot fit safely.

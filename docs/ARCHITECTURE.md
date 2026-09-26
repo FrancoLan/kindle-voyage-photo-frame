@@ -28,7 +28,7 @@ The two ARM helper binaries are included so installation does not require an ARM
 1. The Mac sync process creates content-addressed PNG files and a manifest every 10 minutes.
 2. The Kindle downloads only missing or changed files. After the new manifest and playlist are verified and published, it removes cached renderings absent from that playlist.
 3. The player copies the current playlist before rendering, so a background sync cannot alter the list mid-cycle.
-4. When a new manifest completes, the player reloads the playlist and shows the first updated photo.
+4. When a new manifest completes, the player immediately plays newly added photos, then resumes after the photo that was showing when the sync completed. The rest of the playlist keeps its captured-time order.
 
 PagePress changes draw immediately with a non-flashing GC16 update. The player keeps the cleanup deadline in its main event loop; another manual change replaces that deadline, so a stale timer cannot refresh an older photo. If the same photo remains visible for two minutes, FBInk performs a flashing full-screen GC16 refresh against the existing framebuffer. After each displayed photo, the player selects a new automatic interval from 10 through 20 minutes; that automatic transition uses flashing GC16 immediately.
 

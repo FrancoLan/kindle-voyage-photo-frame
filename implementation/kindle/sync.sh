@@ -17,6 +17,8 @@ printf '%s\n' "$$" > "$SYNC_LOCK/pid"
 cleanup_sync() {
     [ -z "${manifest_tmp:-}" ] || rm -f "$manifest_tmp"
     [ -z "${playlist_tmp:-}" ] || rm -f "$playlist_tmp"
+    [ -z "${new_photos_tmp:-}" ] || rm -f "$new_photos_tmp"
+    rm -f "$STATE_DIR/previous-playlist.tmp.$$"
     rm -f "$CACHE_DIR"/*.download.$$ "$SYNC_LOCK/pid"
     rmdir "$SYNC_LOCK" 2>/dev/null || true
 }
@@ -30,10 +32,20 @@ echo "$auth_token" | grep -Eq '^[a-f0-9]{64}$' || exit 32
 mkdir -p "$CACHE_DIR" "$STATE_DIR"
 manifest_tmp="$STATE_DIR/manifest.tmp.$$"
 playlist_tmp="$STATE_DIR/playlist.tmp.$$"
+new_photos_tmp="$STATE_DIR/new-photos.tmp.$$"
+
+# Keep the last published device playlist long enough to identify genuinely
+# new entries before atomically replacing it.
+if [ -s "$STATE_DIR/playlist" ]; then
+    cp "$STATE_DIR/playlist" "$STATE_DIR/previous-playlist.tmp.$$"
+else
+    : > "$STATE_DIR/previous-playlist.tmp.$$"
+fi
 
 curl -fsS --connect-timeout 10 --max-time 30 -H "Authorization: Bearer $auth_token" "$SERVER_URL/v1/manifest" -o "$manifest_tmp" || exit 21
 head -n 1 "$manifest_tmp" | grep -q '^# kindle-photoframe-manifest-v1' || exit 22
 : > "$playlist_tmp"
+: > "$new_photos_tmp"
 
 tab=$(printf '\t')
 while IFS="$tab" read -r sha bytes path; do
@@ -51,10 +63,19 @@ while IFS="$tab" read -r sha bytes path; do
         mv "$temp" "$target"
     fi
     printf '%s\n' "$target" >> "$playlist_tmp"
+    if ! grep -F -x -q "$target" "$STATE_DIR/previous-playlist.tmp.$$"; then
+        printf '%s\n' "$target" >> "$new_photos_tmp"
+    fi
 done < "$manifest_tmp"
 
 [ -s "$playlist_tmp" ] || exit 30
 mv "$playlist_tmp" "$STATE_DIR/playlist"
+if [ -s "$new_photos_tmp" ]; then
+    mv "$new_photos_tmp" "$STATE_DIR/new-photos"
+else
+    rm -f "$STATE_DIR/new-photos" "$new_photos_tmp"
+fi
+rm -f "$STATE_DIR/previous-playlist.tmp.$$"
 mv "$manifest_tmp" "$STATE_DIR/manifest.tsv"
 for cached in "$CACHE_DIR"/*.png; do
     [ -f "$cached" ] || continue

@@ -7,6 +7,8 @@ LOCK_DIR="$STATE_DIR/player.lock"
 frame_entered=0
 sync_pid=
 PLAYLIST="$STATE_DIR/playback-playlist"
+NORMAL_PLAYLIST="$STATE_DIR/normal-playback-playlist"
+NEW_PHOTOS="$STATE_DIR/new-photos"
 TOUCH_FILE="$STATE_DIR/touch-command"
 SYNC_COMPLETE="$STATE_DIR/sync-complete"
 mkdir -p "$STATE_DIR"
@@ -69,6 +71,9 @@ sh "$BASE_DIR/pagepress-mode.sh" enable
 current_index=1
 refresh_playlist=1
 sync_needed=1
+priority_active=0
+resume_after_image=
+resume_index=1
 first_image=1
 render_mode=full
 manual_full_refresh_delay=${MANUAL_FULL_REFRESH_DELAY_SECONDS:-120}
@@ -136,6 +141,28 @@ while [ ! -f "$BASE_DIR/disabled" ]; do
             cp "$STATE_DIR/playlist" "$PLAYLIST"
         else
             find "$CACHE_DIR" -maxdepth 1 -type f \( -name '*.png' -o -name '*.jpg' -o -name '*.jpeg' -o -name '*.pgm' \) | sort > "$PLAYLIST"
+        fi
+        if [ -s "$NEW_PHOTOS" ]; then
+            cp "$PLAYLIST" "$NORMAL_PLAYLIST"
+            resume_index=1
+            normal_count=$(wc -l < "$NORMAL_PLAYLIST" | tr -d ' ')
+            if [ -n "$resume_after_image" ]; then
+                normal_index=0
+                while IFS= read -r normal_image; do
+                    normal_index=$((normal_index + 1))
+                    if [ "$normal_image" = "$resume_after_image" ]; then
+                        resume_index=$((normal_index + 1))
+                        break
+                    fi
+                done < "$NORMAL_PLAYLIST"
+            fi
+            if [ "$resume_index" -gt "$normal_count" ]; then
+                resume_index=1
+            fi
+            cp "$NEW_PHOTOS" "$PLAYLIST"
+            rm -f "$NEW_PHOTOS"
+            priority_active=1
+            echo "New photos detected; playing them before resuming the existing sequence."
         fi
         photo_count=$(wc -l < "$PLAYLIST" | tr -d ' ')
         if [ "$photo_count" -eq 0 ]; then
@@ -224,6 +251,7 @@ while [ ! -f "$BASE_DIR/disabled" ]; do
         reload)
             render_mode=full
             current_index=1
+            resume_after_image=$(cat "$STATE_DIR/current-image" 2>/dev/null || true)
             refresh_playlist=1
             sync_needed=0
             ;;
@@ -231,18 +259,32 @@ while [ ! -f "$BASE_DIR/disabled" ]; do
             render_mode=quick
             current_index=$((current_index + 1))
             if [ "$current_index" -gt "$photo_count" ]; then
-                current_index=1
-                refresh_playlist=1
-                sync_needed=1
+                if [ "$priority_active" -eq 1 ]; then
+                    cp "$NORMAL_PLAYLIST" "$PLAYLIST"
+                    priority_active=0
+                    current_index=$resume_index
+                    photo_count=$(wc -l < "$PLAYLIST" | tr -d ' ')
+                else
+                    current_index=1
+                    refresh_playlist=1
+                    sync_needed=1
+                fi
             fi
             ;;
         '')
             render_mode=full
             current_index=$((current_index + 1))
             if [ "$current_index" -gt "$photo_count" ]; then
-                current_index=1
-                refresh_playlist=1
-                sync_needed=1
+                if [ "$priority_active" -eq 1 ]; then
+                    cp "$NORMAL_PLAYLIST" "$PLAYLIST"
+                    priority_active=0
+                    current_index=$resume_index
+                    photo_count=$(wc -l < "$PLAYLIST" | tr -d ' ')
+                else
+                    current_index=1
+                    refresh_playlist=1
+                    sync_needed=1
+                fi
             fi
             ;;
     esac
