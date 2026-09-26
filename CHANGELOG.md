@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+- Prevent portrait-photo orientation regressions by applying EXIF orientation once in ImageIO; remove the redundant pre-rotation step and invalidate v9 render caches.
+- Add a pipeline regression check that rejects double rotation.
+
+## Unreleased
+
 - Apply a gentle shadow-lift curve only to photos with a very dark luminance median and sufficient highlight range; leave normal/high-contrast images unchanged.
 - Deployed to the Mac renderer on 2026-09-27; regenerated and published all 44 shared photos as manifest `4c78d24e6f4712b6` for Kindle and BOOX.
 
