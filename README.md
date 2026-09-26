@@ -12,7 +12,7 @@ The Mac downloads the album, applies face-aware framing for the Voyage's 1072×1
 - Stores photos on the Kindle for offline playback.
 - Removes obsolete rendered photos only after a complete verified synchronization succeeds.
 - Prioritizes detected faces when cropping; if a group cannot fit safely, preserves the full photo and fills the unused area with darkened colors sampled from the photo edges.
-- Uses Apple MapKit's fullest available formatted address (street, suburb, and city when available), with a city-name fallback; long labels wrap instead of dropping the address prefix.
+- Uses Apple MapKit's fullest available formatted address (street, suburb, and city when available), with a city-name fallback; address and capture time are on separate lines, with the date shown as `YYYY-MM-DD Fri` and the timestamp kept intact.
 - Shows the capture time in the photo's recorded time zone.
 - Uses either PagePress side on the Voyage for previous/next.
 - Uses a fast non-flashing refresh for PagePress navigation, followed by a full cleanup refresh two minutes later.

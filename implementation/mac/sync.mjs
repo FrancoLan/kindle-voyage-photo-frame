@@ -10,7 +10,7 @@ import { extractPhotos, fetchAllZoneRecords, resolvePublicShare } from './icloud
 
 const execFileAsync = promisify(execFile);
 const SCRIPT_DIR = dirname(fileURLToPath(import.meta.url));
-const RENDER_VERSION = 'voyage-1072x1448-gray-face-edge-fill-detailed-address-v6';
+const RENDER_VERSION = 'voyage-1072x1448-gray-face-edge-fill-weekday-two-line-v8';
 const MAX_SOURCE_BYTES = 100 * 1024 * 1024;
 
 async function atomicWrite(path, contents, mode = 0o644) {
@@ -135,7 +135,10 @@ function captureTimeLabel(photo) {
   const offset = Number(photo.timeZoneOffset);
   if (!Number.isFinite(capturedAt) || capturedAt <= 0) return '';
   const safeOffset = Number.isFinite(offset) && Math.abs(offset) <= 18 * 60 * 60 ? offset : 0;
-  return new Date(capturedAt + safeOffset * 1000).toISOString().slice(0, 16).replace('T', ' ');
+  const localDate = new Date(capturedAt + safeOffset * 1000);
+  const localTime = localDate.toISOString();
+  const weekday = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'][localDate.getUTCDay()];
+  return `${localTime.slice(0, 10)} ${weekday} ${localTime.slice(11, 16)}`;
 }
 
 async function reverseGeocode(location, cache) {
@@ -163,10 +166,11 @@ async function metadataForPhoto(photo, stagingDir, geocodeCache) {
   const location = await decodeLocation(photo.locationEncoded, metadataDir);
   const locationText = location ? await reverseGeocode(location, geocodeCache) : '';
   const capturedAtText = captureTimeLabel(photo) || 'Time unavailable';
+  const capturedAtLabelText = capturedAtText.replaceAll(' ', '\u00a0');
   return {
     locationText,
     capturedAtText,
-    label: [locationText, capturedAtText].filter(Boolean).join('  ·  '),
+    label: locationText ? `${locationText}\n${capturedAtLabelText}` : capturedAtLabelText,
   };
 }
 
