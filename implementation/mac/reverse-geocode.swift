@@ -22,18 +22,10 @@ struct ReverseGeocode {
 
         do {
             let items = try await request.mapItems
-            guard let placemark = items.first?.placemark else { exit(4) }
-            let candidates: [String] = [
-                placemark.subLocality,
-                placemark.locality,
-                placemark.subAdministrativeArea,
-                placemark.administrativeArea,
-            ].compactMap { value in
-                guard let value else { return nil }
-                let cleaned = value.trimmingCharacters(in: .whitespacesAndNewlines)
-                return cleaned.isEmpty ? nil : cleaned
-            }
-            guard let result = candidates.first else { exit(5) }
+            guard let item = items.first else { exit(4) }
+            let result = item.addressRepresentations?.cityName?
+                .trimmingCharacters(in: .whitespacesAndNewlines)
+            guard let result, !result.isEmpty else { exit(5) }
             print(result)
         } catch {
             FileHandle.standardError.write(Data("reverse geocoding failed: \(error.localizedDescription)\n".utf8))
