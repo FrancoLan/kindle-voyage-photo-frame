@@ -15,7 +15,7 @@ The Mac downloads the album, applies face-aware framing for the Voyage's 1072×1
 - Uses Apple MapKit's fullest available formatted address (street, suburb, and city when available), with a city-name fallback; address and capture time are on separate lines, with the date shown as `YYYY-MM-DD Fri` and the timestamp kept intact.
 - Shows the capture time in the photo's recorded time zone.
 - Uses either PagePress side on the Voyage for previous/next.
-- Uses a fast non-flashing refresh for PagePress navigation, followed by a full cleanup refresh two minutes later.
+- Uses a fast non-flashing refresh for PagePress navigation, followed by a full cleanup refresh 10 seconds later.
 - Opens an exit confirmation after a screen tap; tap left to cancel or right to exit.
 - Advances automatically after a newly selected random delay between 10 and 20 minutes.
 - Uses a full high-fidelity refresh for automatic photo changes.

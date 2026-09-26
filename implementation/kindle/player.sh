@@ -77,7 +77,7 @@ resume_after_image=
 resume_index=1
 first_image=1
 render_mode=full
-manual_full_refresh_delay=${MANUAL_FULL_REFRESH_DELAY_SECONDS:-120}
+manual_full_refresh_delay=${MANUAL_FULL_REFRESH_DELAY_SECONDS:-10}
 
 choose_interval_seconds() {
     interval_min=${INTERVAL_MIN_SECONDS:-600}

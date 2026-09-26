@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Reduce the deferred full-screen cleanup refresh after manual Kindle photo changes from 120 seconds to 10 seconds; automatic changes still use an immediate full refresh.
 - Prevent portrait-photo orientation regressions by applying EXIF orientation once in ImageIO; remove the redundant pre-rotation step and invalidate v9 render caches.
 - Add a pipeline regression check that rejects double rotation.
 

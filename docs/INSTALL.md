@@ -89,7 +89,7 @@ Device settings live in `implementation/kindle/config.sh` and are copied during 
 | --- | ---: | --- |
 | `INTERVAL_MIN_SECONDS` | `600` | Minimum automatic photo interval |
 | `INTERVAL_MAX_SECONDS` | `1200` | Maximum automatic photo interval |
-| `MANUAL_FULL_REFRESH_DELAY_SECONDS` | `120` | Delay before a manual change receives a full cleanup refresh |
+| `MANUAL_FULL_REFRESH_DELAY_SECONDS` | `10` | Delay before a manual change receives a full cleanup refresh |
 | `DAY_START_HOUR` | `7` | Start automatic frontlight |
 | `NIGHT_START_HOUR` | `22` | Turn frontlight off |
 | `DAY_FRONTLIGHT_LEVEL` | `4` | Fallback level before auto mode adjusts |
