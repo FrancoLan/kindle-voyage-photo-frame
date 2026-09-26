@@ -3,7 +3,7 @@
 ## Unreleased
 
 - Apply a gentle shadow-lift curve only to photos with a very dark luminance median and sufficient highlight range; leave normal/high-contrast images unchanged.
-- Re-render cached photos under a new renderer cache version so the Mac service regenerates both Kindle and BOOX images.
+- Deployed to the Mac renderer on 2026-09-27; regenerated and published all 44 shared photos as manifest `4c78d24e6f4712b6` for Kindle and BOOX.
 
 ## 0.4.9 — 2026-09-26
 
