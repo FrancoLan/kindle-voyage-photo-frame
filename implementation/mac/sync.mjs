@@ -10,7 +10,7 @@ import { extractPhotos, fetchAllZoneRecords, resolvePublicShare } from './icloud
 
 const execFileAsync = promisify(execFile);
 const SCRIPT_DIR = dirname(fileURLToPath(import.meta.url));
-const RENDER_VERSION = 'voyage-1072x1448-gray-face-edge-fill-v5';
+const RENDER_VERSION = 'voyage-1072x1448-gray-face-edge-fill-detailed-address-v6';
 const MAX_SOURCE_BYTES = 100 * 1024 * 1024;
 
 async function atomicWrite(path, contents, mode = 0o644) {
@@ -139,7 +139,7 @@ function captureTimeLabel(photo) {
 }
 
 async function reverseGeocode(location, cache) {
-  const key = `${location.latitude.toFixed(4)},${location.longitude.toFixed(4)}`;
+  const key = `address-v2:${location.latitude.toFixed(4)},${location.longitude.toFixed(4)}`;
   if (typeof cache[key] === 'string' && cache[key]) return cache[key];
   try {
     const { stdout } = await execFileAsync(

@@ -228,7 +228,7 @@ if useAspectFit {
 
 let paragraph = NSMutableParagraphStyle()
 paragraph.alignment = .right
-paragraph.lineBreakMode = .byTruncatingHead
+paragraph.lineBreakMode = .byWordWrapping
 var attributes: [NSAttributedString.Key: Any] = [
     .font: NSFont.systemFont(ofSize: 22, weight: .medium),
     .foregroundColor: NSColor.white,

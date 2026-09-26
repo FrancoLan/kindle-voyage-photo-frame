@@ -23,7 +23,9 @@ struct ReverseGeocode {
         do {
             let items = try await request.mapItems
             guard let item = items.first else { exit(4) }
-            let result = item.addressRepresentations?.cityName?
+            let representations = item.addressRepresentations
+            let result = (representations?.fullAddress(includingRegion: false, singleLine: true)
+                ?? representations?.cityName)?
                 .trimmingCharacters(in: .whitespacesAndNewlines)
             guard let result, !result.isEmpty else { exit(5) }
             print(result)
