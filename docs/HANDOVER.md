@@ -1,5 +1,11 @@
 # Maintenance handover
 
+## 2026-09-28 BOOX photo-transition full refresh (cross-device record)
+
+- The user requested full-screen refresh on each BOOX photo change, matching its physical Settings key. BOOX APK 1.2.3 / code 10 was installed with its original matching signing key and tested on the N96 (Android 4.0.4 / API 15). It invokes the firmware's `View.fullRefreshScreen()` about 100 ms after drawing, including on resume, and cancels stale callbacks on another photo or pause.
+- BOOX project checks passed; on-device calls succeeded during navigation and foreground recovery. The user explicitly confirmed the flash matches the hardware key and clears ghosting. The BOOX implementation is being submitted through a separate feature PR; no new Release was created.
+- This is documentation only for Kindle. Its existing 10-second deferred full refresh after quick manual navigation remains unchanged, as previously requested. Shared image processing, ordering and synchronization are unchanged. See `CROSS_DEVICE_PARITY.md` for the recorded hardware-specific behavior.
+
 ## 2026-09-28 ambient-frontlight follow-up (deployed; dark-room shutoff confirmed)
 
 - A live diagnosis after the user restarted the frame read 84 lux and reported `hold-auto`, `flAuto=1`, and `flIntensity=24` (maximum). With the previous 60/100 lux thresholds, a fresh session in the hysteresis band defaulted to automatic light. This explains why the frontlight remained on in the user's dim room; the earlier `bl_power`/brightness mismatch was not sufficient by itself to identify the cause.
