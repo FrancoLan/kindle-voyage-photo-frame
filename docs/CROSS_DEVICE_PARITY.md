@@ -16,3 +16,7 @@ The following behavior stays aligned:
 Hardware-specific implementations may differ: the Kindle uses FBInk, PagePress, jailbreak scripts, and Voyage frontlight controls; the BOOX uses an Android Activity, Android input, and the system package installer. A plain N96 has no official frontlight equivalent.
 
 Hardware differences must not silently change the user-visible result. Any intentional behavior difference requires explicit user approval before implementation and must be recorded in both repositories' handover documentation.
+
+## Confirmed refresh behavior (2026-09-28)
+
+The user specifically requested BOOX full-screen refresh on each photo change, matching its physical Settings key. BOOX APK 1.2.3 requests the N96 firmware's full refresh about 100 ms after drawing the photo, and also when resuming the frame. The user verified the matching flash and removal of ghosting on the device. Kindle retains its previously requested 10-second deferred full refresh after quick manual navigation; this BOOX-specific change does not alter the Kindle player. Photo processing, ordering, synchronization, and slideshow intervals remain shared.
