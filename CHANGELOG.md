@@ -1,5 +1,10 @@
 # Changelog
 
+## Unreleased
+
+- Raise the Voyage low-light cutoff to 100 lux and bright threshold to 150 lux.
+- Start with the frontlight off when a new photo-frame session begins in the hysteresis band; retain the prior off/automatic state across sensor samples until a threshold is crossed.
+
 ## 0.4.10 — 2026-09-28
 
 - Play newly synchronized photos immediately and check shared albums every minute.

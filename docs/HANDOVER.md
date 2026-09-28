@@ -1,5 +1,11 @@
 # Maintenance handover
 
+## 2026-09-28 ambient-frontlight follow-up (in PR; not deployed)
+
+- A live diagnosis after the user restarted the frame read 84 lux and reported `hold-auto`, `flAuto=1`, and `flIntensity=24` (maximum). With the previous 60/100 lux thresholds, a fresh session in the hysteresis band defaulted to automatic light. This explains why the frontlight remained on in the user's dim room; the earlier `bl_power`/brightness mismatch was not sufficient by itself to identify the cause.
+- The fix raises the off/on thresholds to 100/150 lux, records whether the current session is holding automatic mode, and makes an uninitialized session in the band start dark. Values in the band then preserve the chosen state. The policy regression test covers 84 lux, cold-start behavior, and both hysteresis directions.
+- Full `./scripts/check.sh` passed locally. This branch has not yet been merged or deployed; the Kindle still runs the prior behavior until a protected PR is merged and the update is installed and verified on-device.
+
 ## Repository workflow
 
 - `main` is the deployable and release branch. Do not develop directly on it.

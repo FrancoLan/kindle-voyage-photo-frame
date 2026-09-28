@@ -15,7 +15,7 @@ printf '%s\n' 0 > "$MOCK_STATE/flAuto"
 printf '%s\n' 20 > "$MOCK_STATE/alsLux"
 printf '%s\n' 1 > "$MOCK_STATE/bl_power"
 printf '%s\n' "BASE_DIR=$TMP/device" "STATE_DIR=$TMP/device/state" \
-    'FRONTLIGHT_DARK_LUX=60' 'FRONTLIGHT_BRIGHT_LUX=100' \
+    'FRONTLIGHT_DARK_LUX=100' 'FRONTLIGHT_BRIGHT_LUX=150' \
     'FRONTLIGHT_DEFAULT_LEVEL=4' 'FRONTLIGHT_CHECK_SECONDS=60' \
     > "$TMP/config.sh"
 
@@ -58,6 +58,14 @@ assert_value flIntensity 6
 assert_value flAuto 1
 assert_value bl_power 1
 [ ! -f "$TMP/device/state/frontlight-forced-off" ]
+[ -f "$TMP/device/state/frontlight-auto-active" ]
+
+printf '%s\n' 120 > "$MOCK_STATE/alsLux"
+apply
+assert_value flIntensity 6
+assert_value flAuto 1
+assert_value bl_power 1
+[ -f "$TMP/device/state/frontlight-auto-active" ]
 
 printf '%s\n' invalid > "$MOCK_STATE/alsLux"
 apply
@@ -71,13 +79,38 @@ PATH="$MOCK_BIN:$PATH" MOCK_STATE="$MOCK_STATE" \
 assert_value flIntensity 6
 assert_value flAuto 0
 assert_value bl_power 1
+[ ! -f "$TMP/device/state/frontlight-auto-active" ]
 
 printf '%s\n' 0 > "$MOCK_STATE/flIntensity"
 printf '%s\n' 0 > "$MOCK_STATE/flAuto"
-printf '%s\n' 75 > "$MOCK_STATE/alsLux"
+printf '%s\n' 84 > "$MOCK_STATE/alsLux"
+apply
+assert_value flIntensity 0
+assert_value flAuto 0
+assert_value bl_power 4
+[ -f "$TMP/device/state/frontlight-forced-off" ]
+
+# A fresh app session in the hysteresis band defaults to off, then stays off
+# until the bright threshold is crossed.
+rm -f "$TMP/device/state/frontlight-forced-off" "$TMP/device/state/frontlight-auto-active"
+printf '%s\n' 125 > "$MOCK_STATE/alsLux"
+apply
+assert_value flIntensity 0
+assert_value flAuto 0
+assert_value bl_power 4
+[ -f "$TMP/device/state/frontlight-forced-off" ]
+
+printf '%s\n' 149 > "$MOCK_STATE/alsLux"
+apply
+assert_value flIntensity 0
+assert_value flAuto 0
+assert_value bl_power 4
+
+printf '%s\n' 150 > "$MOCK_STATE/alsLux"
 apply
 assert_value flIntensity 4
 assert_value flAuto 1
 assert_value bl_power 1
+[ -f "$TMP/device/state/frontlight-auto-active" ]
 
 echo "Frontlight ambient-light policy checks passed."
