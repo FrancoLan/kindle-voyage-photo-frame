@@ -103,6 +103,8 @@ See [Architecture](docs/ARCHITECTURE.md) for the update and authentication desig
 
 Shared photo-frame behavior is kept in parity with the BOOX N96 edition. Any intentional user-visible divergence must be approved explicitly; see [Cross-device parity](docs/CROSS_DEVICE_PARITY.md).
 
+Repository maintenance uses protected pull requests and macOS CI; see the [maintenance handover](docs/HANDOVER.md).
+
 ## Known limitations
 
 - The iCloud Shared Album reader uses Apple's public web client endpoints, which are not a documented developer API and may change.
