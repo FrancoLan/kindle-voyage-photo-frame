@@ -74,6 +74,7 @@ restore_automatic_frontlight() {
     [ "$current_auto" = 1 ] || lipc-set-prop -i com.lab126.powerd flAuto 1 >/dev/null 2>&1 || true
     restore_backlight_power
     rm -f "$STATE_DIR/frontlight-forced-off"
+    touch "$STATE_DIR/frontlight-auto-active"
 }
 
 stop_stale_watchers() {
@@ -105,6 +106,7 @@ apply_sensor_policy() {
         current=$(lipc-get-prop -i com.lab126.powerd flIntensity 2>/dev/null || true)
         [ "$current" = 0 ] || set_frontlight 0
         [ -f "$STATE_DIR/frontlight-forced-off" ] || touch "$STATE_DIR/frontlight-forced-off"
+        rm -f "$STATE_DIR/frontlight-auto-active"
         [ ! -f "$STATE_DIR/frontlight-power.previous" ] || set_backlight_power 4
         condition=dark
         target=0
@@ -119,10 +121,22 @@ apply_sensor_policy() {
             [ ! -f "$STATE_DIR/frontlight-power.previous" ] || set_backlight_power 4
             condition=hold-off
             target=0
-        else
+        elif [ -f "$STATE_DIR/frontlight-auto-active" ]; then
             restore_automatic_frontlight
             condition=hold-auto
             target=auto
+        else
+            # A fresh session in the hysteresis band starts dark. Without a
+            # remembered state, defaulting to automatic light can leave the
+            # frontlight on in a dim room.
+            current_auto=$(lipc-get-prop -i com.lab126.powerd flAuto 2>/dev/null || true)
+            [ "$current_auto" = 0 ] || lipc-set-prop -i com.lab126.powerd flAuto 0 >/dev/null 2>&1 || true
+            current=$(lipc-get-prop -i com.lab126.powerd flIntensity 2>/dev/null || true)
+            [ "$current" = 0 ] || set_frontlight 0
+            touch "$STATE_DIR/frontlight-forced-off"
+            [ ! -f "$STATE_DIR/frontlight-power.previous" ] || set_backlight_power 4
+            condition=startup-off
+            target=0
         fi
     fi
     record_policy_status
@@ -138,7 +152,7 @@ restore_settings() {
         case "$auto" in 0|1) lipc-set-prop -i com.lab126.powerd flAuto "$auto" >/dev/null 2>&1 || true ;; esac
     fi
     restore_backlight_power
-    rm -f "$STATE_DIR/frontlight-settings-saved" "$STATE_DIR/frontlight-intensity.previous" "$STATE_DIR/frontlight-auto.previous" "$STATE_DIR/frontlight-power.previous" "$STATE_DIR/frontlight-forced-off" "$STATE_DIR/frontlight-status.tsv"
+    rm -f "$STATE_DIR/frontlight-settings-saved" "$STATE_DIR/frontlight-intensity.previous" "$STATE_DIR/frontlight-auto.previous" "$STATE_DIR/frontlight-power.previous" "$STATE_DIR/frontlight-forced-off" "$STATE_DIR/frontlight-auto-active" "$STATE_DIR/frontlight-status.tsv"
 }
 
 case "${1:-}" in
