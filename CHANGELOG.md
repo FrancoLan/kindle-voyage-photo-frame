@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+- Include the Kindle backlight driver's maximum brightness and power state in diagnostics.
+- Fully power down the Kindle Voyage backlight at the dark-lux threshold, preserve hysteresis while off, and restore its pre-session power state on bright light or exit.
+- Add a fixed, five-second reversible Kindle backlight power test with before/during/after readings.
 - Reduce the deferred full-screen cleanup refresh after manual Kindle photo changes from 120 seconds to 10 seconds; automatic changes still use an immediate full refresh.
 - Prevent portrait-photo orientation regressions by applying EXIF orientation once in ImageIO; remove the redundant pre-rotation step and invalidate v9 render caches.
 - Add a pipeline regression check that rejects double rotation.

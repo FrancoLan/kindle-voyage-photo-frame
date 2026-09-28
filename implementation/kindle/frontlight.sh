@@ -4,10 +4,28 @@ set -u
 CONFIG_PATH=${KINDLE_PHOTOFRAME_CONFIG:-/mnt/us/kindle-photoframe/config.sh}
 . "$CONFIG_PATH"
 mkdir -p "$STATE_DIR"
+BACKLIGHT_POWER_PATH=${BACKLIGHT_POWER_PATH:-/sys/class/backlight/max77696-bl/bl_power}
 
 valid_intensity() {
     case "$1" in ''|*[!0-9]*) return 1 ;; esac
     [ "$1" -ge 0 ] && [ "$1" -le 24 ]
+}
+
+valid_backlight_power() {
+    case "$1" in 0|1|2|3|4) return 0 ;; *) return 1 ;; esac
+}
+
+set_backlight_power() {
+    value=$1
+    valid_backlight_power "$value" || return 1
+    [ ! -w "$BACKLIGHT_POWER_PATH" ] || printf '%s\n' "$value" > "$BACKLIGHT_POWER_PATH" 2>/dev/null || true
+}
+
+restore_backlight_power() {
+    [ ! -f "$STATE_DIR/frontlight-power.previous" ] || {
+        previous=$(cat "$STATE_DIR/frontlight-power.previous" 2>/dev/null || true)
+        valid_backlight_power "$previous" && set_backlight_power "$previous"
+    }
 }
 
 save_settings() {
@@ -16,6 +34,10 @@ save_settings() {
     auto=$(lipc-get-prop -i com.lab126.powerd flAuto 2>/dev/null || true)
     valid_intensity "$intensity" && printf '%s\n' "$intensity" > "$STATE_DIR/frontlight-intensity.previous"
     case "$auto" in 0|1) printf '%s\n' "$auto" > "$STATE_DIR/frontlight-auto.previous" ;; esac
+    if [ -r "$BACKLIGHT_POWER_PATH" ]; then
+        power=$(cat "$BACKLIGHT_POWER_PATH" 2>/dev/null || true)
+        valid_backlight_power "$power" && printf '%s\n' "$power" > "$STATE_DIR/frontlight-power.previous"
+    fi
     touch "$STATE_DIR/frontlight-settings-saved"
 }
 
@@ -50,6 +72,7 @@ restore_automatic_frontlight() {
     fi
     current_auto=$(lipc-get-prop -i com.lab126.powerd flAuto 2>/dev/null || true)
     [ "$current_auto" = 1 ] || lipc-set-prop -i com.lab126.powerd flAuto 1 >/dev/null 2>&1 || true
+    restore_backlight_power
     rm -f "$STATE_DIR/frontlight-forced-off"
 }
 
@@ -82,6 +105,7 @@ apply_sensor_policy() {
         current=$(lipc-get-prop -i com.lab126.powerd flIntensity 2>/dev/null || true)
         [ "$current" = 0 ] || set_frontlight 0
         [ -f "$STATE_DIR/frontlight-forced-off" ] || touch "$STATE_DIR/frontlight-forced-off"
+        [ ! -f "$STATE_DIR/frontlight-power.previous" ] || set_backlight_power 4
         condition=dark
         target=0
     elif [ "$lux" -ge "$FRONTLIGHT_BRIGHT_LUX" ]; then
@@ -90,6 +114,9 @@ apply_sensor_policy() {
         target=auto
     else
         if [ -f "$STATE_DIR/frontlight-forced-off" ]; then
+            current=$(lipc-get-prop -i com.lab126.powerd flIntensity 2>/dev/null || true)
+            [ "$current" = 0 ] || set_frontlight 0
+            [ ! -f "$STATE_DIR/frontlight-power.previous" ] || set_backlight_power 4
             condition=hold-off
             target=0
         else
@@ -110,7 +137,8 @@ restore_settings() {
         auto=$(cat "$STATE_DIR/frontlight-auto.previous" 2>/dev/null || true)
         case "$auto" in 0|1) lipc-set-prop -i com.lab126.powerd flAuto "$auto" >/dev/null 2>&1 || true ;; esac
     fi
-    rm -f "$STATE_DIR/frontlight-settings-saved" "$STATE_DIR/frontlight-intensity.previous" "$STATE_DIR/frontlight-auto.previous" "$STATE_DIR/frontlight-forced-off" "$STATE_DIR/frontlight-status.tsv"
+    restore_backlight_power
+    rm -f "$STATE_DIR/frontlight-settings-saved" "$STATE_DIR/frontlight-intensity.previous" "$STATE_DIR/frontlight-auto.previous" "$STATE_DIR/frontlight-power.previous" "$STATE_DIR/frontlight-forced-off" "$STATE_DIR/frontlight-status.tsv"
 }
 
 case "${1:-}" in

@@ -14,6 +14,8 @@ PYTHONPYCACHEPREFIX=/tmp/kindle-voyage-photo-frame-pycache python3 -m py_compile
 ./scripts/test-orientation-pipeline.sh
 ./scripts/test-cleanup-storage.sh
 ./scripts/test-frontlight-policy.sh
+./scripts/test-diagnostic-backlight.sh
+./scripts/test-frontlight-pulse.sh
 
 SWIFT_TMP=$(mktemp -d /tmp/kindle-voyage-photo-frame-swift.XXXXXX)
 trap 'rm -rf "$SWIFT_TMP"' EXIT HUP INT TERM

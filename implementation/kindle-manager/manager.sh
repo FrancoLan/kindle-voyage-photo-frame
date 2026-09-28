@@ -110,7 +110,11 @@ collect_diagnostics() {
                 \( -iname '*lux*' -o -iname '*illumin*' -o -iname '*ambient*' -o -iname '*light*' \) \
                 2>/dev/null | head -n 80
         done
-        for path in /sys/class/backlight/max77696-bl/brightness /sys/class/backlight/max77696-bl/actual_brightness; do
+        for path in \
+            /sys/class/backlight/max77696-bl/brightness \
+            /sys/class/backlight/max77696-bl/actual_brightness \
+            /sys/class/backlight/max77696-bl/max_brightness \
+            /sys/class/backlight/max77696-bl/bl_power; do
             [ ! -r "$path" ] || printf '%s\n' "$path"
         done
     } | sort -u > "$diagnostic_dir/ambient-light-paths.txt"
@@ -144,6 +148,35 @@ collect_diagnostics() {
         --data-binary "@$archive" "$SERVER_URL/v1/control/diagnostics/$command_id" >/dev/null 2>&1 || return 83
     rm -rf "$diagnostic_dir" "$archive"
     return 0
+}
+
+frontlight_test() {
+    power_path=/sys/class/backlight/max77696-bl/bl_power
+    actual_path=/sys/class/backlight/max77696-bl/actual_brightness
+    result_file="$STATE_DIR/frontlight-test-result"
+    [ -r "$power_path" ] && [ -w "$power_path" ] || return 88
+    original=$(cat "$power_path" 2>/dev/null || true)
+    case "$original" in
+        0) ;;
+        *) printf 'Skipped: original bl_power=%s (expected 0/on)\n' "$original" > "$result_file"; return 0 ;;
+    esac
+    before_actual=$(cat "$actual_path" 2>/dev/null || printf '?')
+    (
+        restore_power() { printf '%s\n' "$original" > "$power_path" 2>/dev/null || true; }
+        trap 'restore_power; exit 1' HUP INT TERM
+        trap 'restore_power' EXIT
+        printf '4\n' > "$power_path" || exit 1
+        sleep 5
+        during=$(cat "$power_path" 2>/dev/null || printf '?')
+        during_actual=$(cat "$actual_path" 2>/dev/null || printf '?')
+        restore_power || exit 1
+        trap - EXIT HUP INT TERM
+        after=$(cat "$power_path" 2>/dev/null || printf '?')
+        after_actual=$(cat "$actual_path" 2>/dev/null || printf '?')
+        printf 'bl_power before=%s pulse=%s after=%s; actual_brightness before=%s pulse=%s after=%s\n' \
+            "$original" "$during" "$after" "$before_actual" "$during_actual" "$after_actual" > "$result_file"
+        [ "$after" = "$original" ]
+    ) || return 89
 }
 
 available_kib() {
@@ -284,21 +317,31 @@ apply_update() {
 
 execute_command() {
     command_id=$(field id)
-    action=$(field action)
+    command_action=$(field action)
     expires=$(field expires)
     echo "$command_id" | grep -Eq '^[a-f0-9-]{36}$' || return 70
     echo "$expires" | grep -Eq '^[0-9]+$' || return 71
     now=$(date +%s)
     [ "$expires" -ge "$now" ] || return 72
     [ "$(cat "$LAST_COMMAND_FILE" 2>/dev/null || true)" != "$command_id" ] || return 0
-    post_status "$command_id" "$action" running 'Command received'
+    status_action=$command_action
+    # Older local server builds accept the established diagnose status label.
+    # Keep the new, narrowly allowlisted command compatible without changing
+    # the server service while still reporting the pulse readings in detail.
+    [ "$command_action" != frontlight-test ] || status_action=diagnose
+    post_status "$command_id" "$status_action" running 'Command received'
     command_detail='Command completed'
-    case "$action" in
+    case "$command_action" in
         restart) stop_app; rm -f "$APP_DIR/disabled"; start_app || return 73 ;;
         disable) stop_app ;;
         enable) rm -f "$APP_DIR/disabled"; start_app || return 74 ;;
         update) apply_update "$command_id" "$(field packageSha256)" "$(field packageBytes)" "$(field packagePath)" || return $? ;;
         diagnose) collect_diagnostics "$command_id" || return $? ;;
+        frontlight-test)
+            frontlight_test || return $?
+            command_detail=$(cat "$STATE_DIR/frontlight-test-result" 2>/dev/null || printf 'Pulse completed; result unavailable')
+            rm -f "$STATE_DIR/frontlight-test-result"
+            ;;
         cleanup)
             cleanup_storage || return $?
             command_detail=$CLEANUP_DETAIL
@@ -314,8 +357,8 @@ execute_command() {
         *) return 75 ;;
     esac
     printf '%s\n' "$command_id" > "$LAST_COMMAND_FILE"
-    case "$action" in restart|enable|update) sleep 3 ;; esac
-    post_status "$command_id" "$action" ok "$command_detail"
+    case "$command_action" in restart|enable|update) sleep 3 ;; esac
+    post_status "$command_id" "$status_action" ok "$command_detail"
 }
 
 last_heartbeat=0
@@ -327,7 +370,9 @@ while :; do
                 execute_command
                 code=$?
                 if [ "$code" -ne 0 ]; then
-                    post_status "$(field id)" "$action" error "Command failed with code $code"
+                    status_action=$command_action
+                    [ "$command_action" != frontlight-test ] || status_action=diagnose
+                    post_status "$(field id)" "$status_action" error "Command failed with code $code"
                 fi
             fi
         fi
