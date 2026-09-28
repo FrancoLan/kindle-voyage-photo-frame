@@ -1,18 +1,13 @@
 # Changelog
 
-## Unreleased
+## 0.4.10 — 2026-09-28
 
-- Include the Kindle backlight driver's maximum brightness and power state in diagnostics.
-- Fully power down the Kindle Voyage backlight at the dark-lux threshold, preserve hysteresis while off, and restore its pre-session power state on bright light or exit.
-- Add a fixed, five-second reversible Kindle backlight power test with before/during/after readings.
-- Reduce the deferred full-screen cleanup refresh after manual Kindle photo changes from 120 seconds to 10 seconds; automatic changes still use an immediate full refresh.
-- Prevent portrait-photo orientation regressions by applying EXIF orientation once in ImageIO; remove the redundant pre-rotation step and invalidate v9 render caches.
-- Add a pipeline regression check that rejects double rotation.
-
-## Unreleased
-
-- Apply a gentle shadow-lift curve only to photos with a very dark luminance median and sufficient highlight range; leave normal/high-contrast images unchanged.
-- Deployed to the Mac renderer on 2026-09-27; regenerated and published all 44 shared photos as manifest `4c78d24e6f4712b6` for Kindle and BOOX.
+- Play newly synchronized photos immediately and check shared albums every minute.
+- Keep portrait photos upright with a single EXIF orientation transform; add a regression check against double rotation.
+- Improve photo captions with fuller location addresses and weekday labels; apply a restrained shadow lift only to very dark photos.
+- Turn the Voyage frontlight fully off at the dark-lux threshold, keep it off through the hysteresis band, and restore its prior state in brighter light or on exit.
+- Run the deferred manual full-screen cleanup refresh after 10 seconds; automatic photo changes still refresh immediately.
+- Add backlight hardware diagnostics and a fixed, reversible five-second power test.
 
 ## 0.4.9 — 2026-09-26
 
