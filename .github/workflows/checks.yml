@@ -29,5 +29,8 @@ jobs:
       - name: Check patch whitespace
         run: git diff --check origin/main...
 
+      - name: Install repository check dependencies
+        run: brew install ripgrep
+
       - name: Run repository checks
         run: ./scripts/check.sh
