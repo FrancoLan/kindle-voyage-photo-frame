@@ -1,11 +1,11 @@
 # Maintenance handover
 
-## 2026-09-28 ambient-frontlight follow-up (deployed; dark-room visual check pending)
+## 2026-09-28 ambient-frontlight follow-up (deployed; dark-room shutoff confirmed)
 
 - A live diagnosis after the user restarted the frame read 84 lux and reported `hold-auto`, `flAuto=1`, and `flIntensity=24` (maximum). With the previous 60/100 lux thresholds, a fresh session in the hysteresis band defaulted to automatic light. This explains why the frontlight remained on in the user's dim room; the earlier `bl_power`/brightness mismatch was not sufficient by itself to identify the cause.
 - The fix raises the off/on thresholds to 100/150 lux, records whether the current session is holding automatic mode, and makes an uninitialized session in the band start dark. Values in the band then preserve the chosen state. The policy regression test covers 84 lux, cold-start behavior, and both hysteresis directions.
 - Full `./scripts/check.sh` and PR #2's `Project checks` passed. PR #2 was merged as `46c7da4` and deployed wirelessly. After waking the device and starting the frame, a diagnostic at 2026-09-28 12:24:42 UTC confirmed `appState=running`, the installed 100/150 lux thresholds, and frontlight script SHA-256 `2e0c6e13c5b58a36415278739799fc940b1e82da9e1e5afb58ad2ae37e185c33`, matching the merged implementation.
-- The live sensor read 258 lux, with policy `bright`, `flAuto=1`, `flIntensity=4/24`, and `bl_power=0`, consistent with the bright-side policy. Low-light shutoff and the user's visual confirmation remain pending. The device's unchanged legacy version string does not identify this update; use the script hash and thresholds instead.
+- The live sensor read 258 lux, with policy `bright`, `flAuto=1`, `flIntensity=4/24`, and `bl_power=0`, consistent with the bright-side policy. The user subsequently confirmed that the frontlight extinguished during the requested dark-room check. This verifies visible low-light shutoff; no new sensor reading or measured response time was collected for that observation. The device's unchanged legacy version string does not identify this update; use the script hash and thresholds instead.
 
 ## Repository workflow
 
