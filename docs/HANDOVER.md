@@ -26,3 +26,18 @@
 ## CI boundary
 
 CI validates shell and JavaScript syntax, the Python helper, renderer behavior, orientation, cleanup, frontlight policy, diagnostic behavior, Swift compilation, and privacy checks. It cannot validate the Kindle display, ambient-light sensor, PagePress hardware, Wi-Fi behavior, or deployed signing/authentication state.
+
+## 2026-10-04 battery-controlled charging
+
+The shared Mac controller reads fresh device telemetry and controls independently configured HomeKit plugs: below 40% on, above 80% off, inclusive 40–80 hold. Kindle telemetry was deployed and BOOX uses its existing battery diagnostics. All four configured shortcut directions were checked against device power reports, and background off execution while the Mac was locked succeeded after fixing subprocess stdin EOF handling. CI cannot reproduce HomeKit or device tests.
+
+Each device keeps its own private JSONL history of command success/failure, observed charging transitions and five-minute charging samples. Samples retain source timestamps; unavailable readings are not fabricated. Threshold, freshness, sampling and subprocess EOF regression tests are in the full check suite.
+
+Operation requires a powered, logged-in, network-connected Mac with sleep disabled, valid HomeKit shortcuts and a persistent reachable server address. The deployment server address is now saved as a persistent manual Ethernet configuration, and service reachability and fresh device reports were verified. A reboot recovery test has not been performed. Private deployment handover and local recovery backups remain outside GitHub. No new release is created.
+
+### Dual-interface server fallback
+- Give Ethernet and Wi-Fi different reserved LAN addresses, with Ethernet first in the service order. Keep both interfaces enabled.
+- Configure Mac `listenHosts` with exactly those two addresses. The server listens only when an address is assigned, and checks every ten seconds to restore listeners after reconnection. Existing authentication remains required.
+- Set `SERVER_URL` to the primary endpoint and optional `SERVER_FALLBACK_URL` to the backup endpoint in both Kindle configuration files. Deploy `server-fallback.sh` alongside both manager and photo-sync scripts.
+- Each polling/sync cycle probes the authenticated manifest, prefers the primary, and uses the backup when the primary fails. It retries the primary on subsequent cycles. This applies to the photo frame service; other Mac services need their own fallback configuration.
+- Tests cover primary preference, backup selection, recovery, both endpoints unavailable, and interface listener removal/restoration. Physical unplug/reconnect verification must use new device reports, including the server-side `localAddress` field; old reports are insufficient.

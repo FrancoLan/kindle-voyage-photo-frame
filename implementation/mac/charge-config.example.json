@@ -1,0 +1,12 @@
+{
+  "enabled": false,
+  "low": 40,
+  "high": 80,
+  "maxAgeSeconds": 600,
+  "reassertSeconds": 600,
+  "controlDir": "REPLACE_WITH_LOCAL_CONTROL_DIRECTORY",
+  "devices": {
+    "kindle": { "device": "kindle-voyage", "statusFile": "status.json", "verified": false, "shortcuts": { "on": "Kindle充电开", "off": "Kindle充电关" } },
+    "boox": { "device": "boox-n96", "statusFile": "boox-status.json", "verified": false, "shortcuts": { "on": "Boox充电开", "off": "Boox充电关" } }
+  }
+}

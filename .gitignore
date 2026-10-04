@@ -8,3 +8,7 @@ implementation/mac/metadata-overlay
 implementation/mac/reverse-geocode
 private-backups/
 
+
+*.jsonl
+implementation/mac/charge-config.local.json
+implementation/mac/charge-config.json

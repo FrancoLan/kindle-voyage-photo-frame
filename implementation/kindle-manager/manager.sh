@@ -4,6 +4,8 @@ set -u
 KINDLE_ROOT=${KINDLE_ROOT:-/mnt/us}
 MANAGER_DIR=${MANAGER_DIR:-$KINDLE_ROOT/kindle-manager}
 . "$MANAGER_DIR/config.sh"
+PRIMARY_SERVER_URL=$SERVER_URL
+[ ! -f "$MANAGER_DIR/server-fallback.sh" ] || . "$MANAGER_DIR/server-fallback.sh"
 
 STATE_DIR="$MANAGER_DIR/state"
 APP_DIR="$KINDLE_ROOT/kindle-photoframe"
@@ -59,7 +61,9 @@ post_status() {
     command_id=$1
     action=$2
     result=$3
-    detail=$(printf '%s' "$4" | tr '\t\r\n' '   ' | cut -c 1-180)
+    detail=$(printf '%s' "$4" | tr '\t\r\n' '   ' | cut -c 1-100)
+    battery_info=$(sh "$MANAGER_DIR/battery-status.sh" 2>/dev/null || printf 'battery=unknown; power=unknown')
+    detail="$detail; $battery_info"
     {
         printf '# kindle-photoframe-status-v1\n'
         printf 'device\t%s\n' "$DEVICE_ID"
@@ -363,6 +367,9 @@ execute_command() {
 
 last_heartbeat=0
 while :; do
+    if [ -n "${SERVER_FALLBACK_URL:-}" ]; then
+        SERVER_URL=$(choose_server "$PRIMARY_SERVER_URL" "$SERVER_FALLBACK_URL" "$auth_token") || { sleep "$POLL_SECONDS"; continue; }
+    fi
     if curl -fsS --connect-timeout 10 --max-time 30 -H "Authorization: Bearer $auth_token" "$SERVER_URL/v1/control/command" -o "$COMMAND_FILE"; then
         if head -n 1 "$COMMAND_FILE" | grep -q '^# kindle-photoframe-control-v1$'; then
             action=$(field action)
