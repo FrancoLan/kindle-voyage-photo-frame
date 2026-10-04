@@ -59,7 +59,9 @@ post_status() {
     command_id=$1
     action=$2
     result=$3
-    detail=$(printf '%s' "$4" | tr '\t\r\n' '   ' | cut -c 1-180)
+    detail=$(printf '%s' "$4" | tr '\t\r\n' '   ' | cut -c 1-100)
+    battery_info=$(sh "$MANAGER_DIR/battery-status.sh" 2>/dev/null || printf 'battery=unknown; power=unknown')
+    detail="$detail; $battery_info"
     {
         printf '# kindle-photoframe-status-v1\n'
         printf 'device\t%s\n' "$DEVICE_ID"
