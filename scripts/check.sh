@@ -8,11 +8,12 @@ cd "$ROOT"
 
 find implementation scripts -type f -name '*.sh' -print0 | xargs -0 -n 1 sh -n
 find implementation scripts -type f -name '*.mjs' -print0 | xargs -0 -n 1 node --check
-node --test implementation/mac/charge-policy.test.mjs implementation/mac/charge-log.test.mjs implementation/mac/charge-exec.test.mjs
+node --test implementation/mac/charge-policy.test.mjs implementation/mac/charge-log.test.mjs implementation/mac/charge-exec.test.mjs implementation/mac/bind-interfaces.test.mjs
 PYTHONPYCACHEPREFIX=/tmp/kindle-voyage-photo-frame-pycache python3 -m py_compile implementation/kindle/native/build-arm-elf.py
 ./scripts/test-render-modes.sh
 ./scripts/test-refresh-delay.sh
 ./scripts/test-orientation-pipeline.sh
+./scripts/test-server-fallback.sh
 ./scripts/test-cleanup-storage.sh
 ./scripts/test-frontlight-policy.sh
 ./scripts/test-diagnostic-backlight.sh

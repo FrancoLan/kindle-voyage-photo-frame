@@ -30,6 +30,10 @@ trap 'exit 1' HUP INT TERM
 auth_token=$(cat "$AUTH_TOKEN_FILE")
 echo "$auth_token" | grep -Eq '^[a-f0-9]{64}$' || exit 32
 mkdir -p "$CACHE_DIR" "$STATE_DIR"
+if [ -n "${SERVER_FALLBACK_URL:-}" ]; then
+    . /mnt/us/kindle-photoframe/server-fallback.sh
+    SERVER_URL=$(choose_server "$SERVER_URL" "$SERVER_FALLBACK_URL" "$auth_token") || exit 21
+fi
 manifest_tmp="$STATE_DIR/manifest.tmp.$$"
 playlist_tmp="$STATE_DIR/playlist.tmp.$$"
 new_photos_tmp="$STATE_DIR/new-photos.tmp.$$"

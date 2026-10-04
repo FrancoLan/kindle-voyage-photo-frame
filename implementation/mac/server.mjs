@@ -4,7 +4,8 @@ import { createReadStream } from 'node:fs';
 import { randomBytes, timingSafeEqual } from 'node:crypto';
 import { mkdir, readFile, rename, stat, writeFile } from 'node:fs/promises';
 import { createServer } from 'node:http';
-import { dirname, extname, join, resolve } from 'node:path';
+import { bindInterfaces } from './bind-interfaces.mjs';
+import { basename, dirname, extname, join, resolve } from 'node:path';
 
 const configPath = process.argv[2];
 if (!configPath) throw new Error('usage: server.mjs /path/to/config.json');
@@ -91,6 +92,39 @@ function parseStatus(body, remoteAddress) {
   };
 }
 
+function parseBooxStatus(body, remoteAddress) {
+  const values = {};
+  for (const line of body.split(/\r?\n/)) {
+    if (!line || line.startsWith('#')) continue;
+    const split = line.indexOf('\t');
+    if (split < 1) throw new Error('invalid BOOX status line');
+    const key = line.slice(0, split);
+    if (!['device', 'commandId', 'action', 'result', 'appState', 'appVersion', 'detail'].includes(key)) {
+      throw new Error('unknown BOOX status field');
+    }
+    values[key] = cleanStatusField(line.slice(split + 1));
+  }
+  if (values.device !== 'boox-n96') throw new Error('invalid BOOX device');
+  if (values.commandId && !/^[a-f0-9-]{36}$/.test(values.commandId)) throw new Error('invalid BOOX command id');
+  if (values.action && !/^(heartbeat|next|previous|sync|restart|disable|enable|update|diagnose)$/.test(values.action)) {
+    throw new Error('invalid BOOX action');
+  }
+  if (!/^(ok|error|running)$/.test(values.result || '')) throw new Error('invalid BOOX result');
+  if (values.appState && !/^(running|stopped|missing)$/.test(values.appState)) throw new Error('invalid BOOX app state');
+  return {
+    schemaVersion: 1,
+    receivedAt: new Date().toISOString(),
+    remoteAddress,
+    device: values.device,
+    commandId: values.commandId || null,
+    action: values.action || 'heartbeat',
+    result: values.result,
+    appState: values.appState || null,
+    appVersion: values.appVersion || null,
+    detail: values.detail || '',
+  };
+}
+
 function authorized(request) {
   const supplied = request.headers.authorization || '';
   const expected = `Bearer ${authToken}`;
@@ -106,6 +140,18 @@ const server = createServer(async (request, response) => {
     return;
   }
   const diagnosticMatch = url.pathname.match(/^\/v1\/control\/diagnostics\/([a-f0-9-]{36})$/);
+  const booxDiagnosticMatch = url.pathname.match(/^\/v1\/boox\/control\/diagnostics\/([a-f0-9-]{36})$/);
+  if (request.method === 'POST' && booxDiagnosticMatch) {
+    try {
+      const bytes = await readRequestBytes(request, MAX_DIAGNOSTIC_BYTES);
+      if (bytes.length < 3 || bytes[0] !== 0x1f || bytes[1] !== 0x8b || bytes[2] !== 0x08) throw new Error('BOOX diagnostic is not gzip data');
+      await atomicWrite(join(controlDir, 'boox-diagnostics', `${booxDiagnosticMatch[1]}.txt.gz`), bytes);
+      response.writeHead(204, { 'Cache-Control': 'no-store' }).end();
+    } catch (error) {
+      response.writeHead(400, { 'Content-Type': 'text/plain; charset=utf-8', 'Cache-Control': 'no-store' }).end(`${error.message}\n`);
+    }
+    return;
+  }
   if (request.method === 'POST' && diagnosticMatch) {
     try {
       const bytes = await readRequestBytes(request, MAX_DIAGNOSTIC_BYTES);
@@ -121,7 +167,23 @@ const server = createServer(async (request, response) => {
     try {
       const body = await readRequestBody(request, MAX_STATUS_BYTES);
       const status = parseStatus(body, request.socket.remoteAddress || '');
+      status.localAddress = request.socket.localAddress || null;
       await atomicWrite(join(controlDir, 'status.json'), `${JSON.stringify(status, null, 2)}\n`);
+      response.writeHead(204, { 'Cache-Control': 'no-store' }).end();
+    } catch (error) {
+      response.writeHead(400, { 'Content-Type': 'text/plain; charset=utf-8', 'Cache-Control': 'no-store' }).end(`${error.message}\n`);
+    }
+    return;
+  }
+  if (request.method === 'POST' && url.pathname === '/v1/boox/control/status') {
+    try {
+      const body = await readRequestBody(request, MAX_STATUS_BYTES);
+      const status = parseBooxStatus(body, request.socket.remoteAddress || '');
+      status.localAddress = request.socket.localAddress || null;
+      await atomicWrite(join(controlDir, 'boox-status.json'), `${JSON.stringify(status, null, 2)}\n`);
+      if (status.commandId) {
+        await atomicWrite(join(controlDir, 'boox-command-status', `${status.commandId}.json`), `${JSON.stringify(status, null, 2)}\n`);
+      }
       response.writeHead(204, { 'Cache-Control': 'no-store' }).end();
     } catch (error) {
       response.writeHead(400, { 'Content-Type': 'text/plain; charset=utf-8', 'Cache-Control': 'no-store' }).end(`${error.message}\n`);
@@ -138,13 +200,15 @@ const server = createServer(async (request, response) => {
   else if (/^\/v1\/images\/[a-f0-9]{64}\.png$/.test(url.pathname)) path = join(publicDir, url.pathname);
   else if (url.pathname === '/v1/control/command') path = join(controlDir, 'command.tsv');
   else if (/^\/v1\/control\/packages\/[a-f0-9]{64}\.tar\.gz$/.test(url.pathname)) path = join(controlDir, url.pathname.slice('/v1/control/'.length));
+  else if (url.pathname === '/v1/boox/control/command') path = join(controlDir, 'boox-command.tsv');
+  else if (/^\/v1\/boox\/control\/packages\/[a-f0-9]{64}\.apk$/.test(url.pathname)) path = join(controlDir, 'boox-packages', basename(url.pathname));
   else {
     response.writeHead(404).end('Not found\n');
     return;
   }
   try {
     const info = await stat(path);
-    const type = extname(path) === '.png' ? 'image/png' : path.endsWith('.json') ? 'application/json' : path.endsWith('.tar.gz') ? 'application/gzip' : 'text/tab-separated-values; charset=utf-8';
+    const type = extname(path) === '.png' ? 'image/png' : extname(path) === '.apk' ? 'application/vnd.android.package-archive' : path.endsWith('.json') ? 'application/json' : path.endsWith('.tar.gz') ? 'application/gzip' : 'text/tab-separated-values; charset=utf-8';
     response.writeHead(200, {
       'Content-Type': type,
       'Content-Length': info.size,
@@ -164,7 +228,12 @@ const server = createServer(async (request, response) => {
   }
 });
 
-server.listen(Number(config.port || 8787), config.listenHost || '127.0.0.1', () => {
-  const address = server.address();
-  console.log(`Kindle photoframe server listening on ${address.address}:${address.port}`);
+server.on('clientError', (error, socket) => {
+  console.error(`HTTP client error from ${socket.remoteAddress || ''}: ${error.code || error.message}`);
+  if (socket.writable) socket.end('HTTP/1.1 400 Bad Request\r\nConnection: close\r\nContent-Length: 0\r\n\r\n');
+});
+
+bindInterfaces(server, config.listenHosts || [config.listenHost || '127.0.0.1'], Number(config.port || 8787), {
+  onListen: address => console.log(`Kindle photoframe server listening on ${address.address}:${address.port}`),
+  onError: (address, error) => console.error(`Interface ${address} unavailable: ${error.code}`),
 });
