@@ -9,3 +9,7 @@ Missing, invalid, future, or stale readings never change power. Only successful 
 The Mac must remain powered on, logged in, and connected to the network. This controller cannot recover a powered-off Kindle; start its wireless manager after reboot. Validate the replacement controller before disabling existing time-based charging automations to prevent conflicting control. Keep config, state, logs and device telemetry private.
 
 Verification: node --test implementation/mac/charge-policy.test.mjs, node --check implementation/mac/charge-control.mjs, and the full scripts/check.sh.
+
+Each device keeps a private append-only JSONL file in controlDir/charge-logs: kindle.jsonl and boox.jsonl. Entries include UTC timestamp, Sydney local time to seconds, device, battery percentage and the source telemetry timestamp. Successful and failed HomeKit commands record on/off separately from observed charging transitions; command completion alone does not prove a physical plug transition. Charging samples are recorded every five minutes when new valid telemetry is available. Missing or stale telemetry records an unavailable event, without fabricated battery readings. Manual Home app switching is only visible through subsequent charging telemetry, not as a precise plug action timestamp. Dry runs do not write logs or state.
+
+The subprocess runner closes its stdin after launching Shortcuts, since the CLI supports piped input and otherwise waits for EOF. Charge execution regression tests cover this and preserve failure diagnostics.
