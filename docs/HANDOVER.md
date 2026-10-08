@@ -1,43 +1,48 @@
 # Maintenance handover
 
-## 2026-09-28 BOOX photo-transition full refresh (cross-device record)
+Updated 2026-10-05. This describes the last verified deployment; query fresh status before treating any device as online. Earlier investigation history remains available in Git history. Private deployment records are not included.
 
-- The user requested full-screen refresh on each BOOX photo change, matching its physical Settings key. BOOX APK 1.2.3 / code 10 was installed with its original matching signing key and tested on the N96 (Android 4.0.4 / API 15). It invokes the firmware's `View.fullRefreshScreen()` about 100 ms after drawing, including on resume, and cancels stale callbacks on another photo or pause.
-- BOOX project checks passed; on-device calls succeeded during navigation and foreground recovery. The user explicitly confirmed the flash matches the hardware key and clears ghosting. The BOOX implementation is being submitted through a separate feature PR; no new Release was created.
-- This is documentation only for Kindle. Its existing 10-second deferred full refresh after quick manual navigation remains unchanged, as previously requested. Shared image processing, ordering and synchronization are unchanged. See `CROSS_DEVICE_PARITY.md` for the recorded hardware-specific behavior.
+## Current release and verification
 
-## 2026-09-28 ambient-frontlight follow-up (deployed; dark-room shutoff confirmed)
+- Release [v0.4.11](https://github.com/FrancoLan/kindle-voyage-photo-frame/releases/tag/v0.4.11) is published from `main`, with a source ZIP and SHA-256 checksum. PR #5 merged as `b4bc19f`.
+- BOOX companion [v1.2.6](https://github.com/FrancoLan/boox-n96-photo-frame/releases/tag/v1.2.6) includes battery diagnostics and primary/backup endpoint selection; its APK uses the original deployment signing key.
+- Complete project checks and CI passed, including 11 Node regressions and shell fallback cases. Physical tests verified all four charging shortcut directions, background and locked-session shutdown, charging samples, backup communication after Ethernet removal, and return to the primary after reconnection.
+- Final dual-interface settings have not been reboot-tested. Router address reservations must be verified separately; an unanswered ping does not prove an address is reserved.
 
-- A live diagnosis after the user restarted the frame read 84 lux and reported `hold-auto`, `flAuto=1`, and `flIntensity=24` (maximum). With the previous 60/100 lux thresholds, a fresh session in the hysteresis band defaulted to automatic light. This explains why the frontlight remained on in the user's dim room; the earlier `bl_power`/brightness mismatch was not sufficient by itself to identify the cause.
-- The fix raises the off/on thresholds to 100/150 lux, records whether the current session is holding automatic mode, and makes an uninitialized session in the band start dark. Values in the band then preserve the chosen state. The policy regression test covers 84 lux, cold-start behavior, and both hysteresis directions.
-- Full `./scripts/check.sh` and PR #2's `Project checks` passed. PR #2 was merged as `46c7da4` and deployed wirelessly. After waking the device and starting the frame, a diagnostic at 2026-09-28 12:24:42 UTC confirmed `appState=running`, the installed 100/150 lux thresholds, and frontlight script SHA-256 `2e0c6e13c5b58a36415278739799fc940b1e82da9e1e5afb58ad2ae37e185c33`, matching the merged implementation.
-- The live sensor read 258 lux, with policy `bright`, `flAuto=1`, `flIntensity=4/24`, and `bl_power=0`, consistent with the bright-side policy. The user subsequently confirmed that the frontlight extinguished during the requested dark-room check. This verifies visible low-light shutoff; no new sensor reading or measured response time was collected for that observation. The device's unchanged legacy version string does not identify this update; use the script hash and thresholds instead.
+## Runtime and device behavior
 
-## Repository workflow
+The Mac synchronizes the shared album every minute. Both clients keep offline caches, show photos for a random 10–20 minutes, prioritize newly synchronized photos once, then resume their previous order. Shared rendering includes a single EXIF orientation transform, face-aware framing, dark edge-colored fill, location/local capture time with weekdays, and restrained shadow lifting.
 
-- `main` is the deployable and release branch. Do not develop directly on it.
-- Use a short-lived `fix/*`, `feat/*`, or `chore/*` branch for every change, including documentation, and open a pull request back to `main`.
-- The required `Project checks` job runs on pinned macOS 26 and executes `git diff --check` plus the repository's complete `./scripts/check.sh` suite.
-- Pull requests do not replace device testing. Changes to PagePress, touch handling, frontlight policy, rendering, synchronization, updates, installation, or recovery must be verified on the Kindle Voyage before release.
-- Keep shared behavior aligned with the BOOX repository. A cross-device change should use linked pull requests in both repositories; document any intentional divergence in `docs/CROSS_DEVICE_PARITY.md`.
-- Create immutable version tags and GitHub Releases only from merged, verified `main`. Never move an existing release tag.
-- For an urgent device outage, an administrator may bypass branch protection to restore service, but must immediately reconcile the exact tested change through a `hotfix/*` pull request.
+Kindle uses FBInk and native input helpers. PagePress bars move forward and dots backward. Touch opens an exit confirmation; the power key exits. Start/Exit launchers remain on the home screen. Kindle requires Photoframe Start after boot; do not enable unverified automatic startup.
 
-## CI boundary
+Kindle performs a full refresh ten seconds after quick manual navigation. BOOX performs its firmware full refresh about 100 ms after drawing. Kindle frontlight switches off below the low-light threshold and restores automatic mode above the high threshold; an uninitialized hysteresis-band session starts dark. These device-specific differences are recorded in [CROSS_DEVICE_PARITY.md](CROSS_DEVICE_PARITY.md).
 
-CI validates shell and JavaScript syntax, the Python helper, renderer behavior, orientation, cleanup, frontlight policy, diagnostic behavior, Swift compilation, and privacy checks. It cannot validate the Kindle display, ambient-light sensor, PagePress hardware, Wi-Fi behavior, or deployed signing/authentication state.
+The deployed Mac runtime can differ from a fresh public installer in directory and LaunchAgent names. Identify the existing runtime before installing; avoid duplicate services. Keep the Mac powered on, logged in, networked and awake. Locking is supported; restarting with FileVault still requires unlocking and login.
 
-## 2026-10-04 battery-controlled charging
+## Network fallback
 
-The shared Mac controller reads fresh device telemetry and controls independently configured HomeKit plugs: below 40% on, above 80% off, inclusive 40–80 hold. Kindle telemetry was deployed and BOOX uses its existing battery diagnostics. All four configured shortcut directions were checked against device power reports, and background off execution while the Mac was locked succeeded after fixing subprocess stdin EOF handling. CI cannot reproduce HomeKit or device tests.
+- Ethernet and Wi-Fi must use different stable LAN addresses. Put Ethernet first in the service order and verify router reservations/exclusions.
+- Mac `listenHosts` contains only the explicit addresses. `bind-interfaces.mjs` checks assigned addresses every ten seconds, removes vanished listeners and recreates them after reconnection. Authentication remains required; an unauthenticated HTTP 401 means the endpoint is reachable.
+- Both Kindle configuration files use `SERVER_URL` for the primary and optional `SERVER_FALLBACK_URL` for the backup. Deploy the helper alongside management and sync scripts; keep the future update package source aligned.
+- Each cycle probes an authenticated manifest, prefers the primary, uses the backup on failure, and retries the primary on later cycles. Offline caches remain usable if both fail.
+- Validate with new device reports and server-side `localAddress`, after physical cable removal and again after reconnection. Historical heartbeats cannot prove current connectivity. Other Mac services require their own fallback support.
 
-Each device keeps its own private JSONL history of command success/failure, observed charging transitions and five-minute charging samples. Samples retain source timestamps; unavailable readings are not fabricated. Threshold, freshness, sampling and subprocess EOF regression tests are in the full check suite.
+## Charging and logs
 
-Operation requires a powered, logged-in, network-connected Mac with sleep disabled, valid HomeKit shortcuts and a persistent reachable server address. The deployment server address is now saved as a persistent manual Ethernet configuration, and service reachability and fresh device reports were verified. A reboot recovery test has not been performed. Private deployment handover and local recovery backups remain outside GitHub. No new release is created.
+The shared controller turns a verified HomeKit plug on strictly below 40% and off strictly above 80%; boundaries and the interval preserve state. It checks every minute, rejects telemetry older than ten minutes, and reasserts a successful command at most every ten minutes. Configuration defaults to disabled until shortcuts are verified. See [CHARGING.md](CHARGING.md).
 
-### Dual-interface server fallback
-- Give Ethernet and Wi-Fi different reserved LAN addresses, with Ethernet first in the service order. Keep both interfaces enabled.
-- Configure Mac `listenHosts` with exactly those two addresses. The server listens only when an address is assigned, and checks every ten seconds to restore listeners after reconnection. Existing authentication remains required.
-- Set `SERVER_URL` to the primary endpoint and optional `SERVER_FALLBACK_URL` to the backup endpoint in both Kindle configuration files. Deploy `server-fallback.sh` alongside both manager and photo-sync scripts.
-- Each polling/sync cycle probes the authenticated manifest, prefers the primary, and uses the backup when the primary fails. It retries the primary on subsequent cycles. This applies to the photo frame service; other Mac services need their own fallback configuration.
-- Tests cover primary preference, backup selection, recovery, both endpoints unavailable, and interface listener removal/restoration. Physical unplug/reconnect verification must use new device reports, including the server-side `localAddress` field; old reports are insufficient.
+Separate private JSONL files record second-precision UTC/local timestamps, battery and source report times. Command completion/failure is distinct from an observed charging transition. Charging samples require fresh readings every five minutes; missing telemetry produces an unavailable event. Manual plug actions are observed only on subsequent device reports, so their exact physical action time is unknown.
+
+Background command timeouts were fixed by closing subprocess stdin; do not assume lock-screen incompatibility. The charging LaunchAgent is a periodic task: a successful exit between runs is healthy. Preserve its state and active lock rather than deleting them to force repeated actions.
+
+## Maintenance and recovery
+
+Query `status` first, checking `receivedAt`, `appState`, battery and `localAddress`; queue one `diagnose` when fresh evidence is needed and wait for its UUID instead of repeatedly replacing pending commands. Check network/listeners, server errors, diagnostics, then charging errors and per-device logs.
+
+Before deployment, retain configuration, tokens, device scripts, runtime files and logs in a private backup with checksums. On FAT-mounted devices copy contents and verify readback; metadata-copy failures can leave partial updates. Safely eject before starting the frame. Restore only necessary files, preserve current endpoint configuration, and align the future update source. A USB user-file backup is not a system recovery image.
+
+Use short-lived branches and PRs into `main`; run the complete `scripts/check.sh`, CI and relevant physical tests before release. Keep shared behavior aligned through linked BOOX PRs; obtain approval for new user-visible differences. Do not force-push `main` or move release tags.
+
+Never publish private configuration, album links, credentials, photos, diagnostic/battery logs, device identifiers or signing keys. Do not modify iCloud originals or leave unauthenticated maintenance services running. Update current sections directly; preserve detailed history in Git or private records rather than appending conflicting current-state summaries.
+
+GitHub documentation, PR titles/descriptions and release notes use English. Private local handovers may use the operator’s preferred language.
