@@ -44,3 +44,5 @@ Before deployment, retain configuration, tokens, device scripts, runtime files a
 Use short-lived branches and PRs into `main`; run the complete `scripts/check.sh`, CI and relevant physical tests before release. Keep shared behavior aligned through linked BOOX PRs; obtain approval for new user-visible differences. Do not force-push `main` or move release tags.
 
 Never publish private configuration, album links, credentials, photos, diagnostic/battery logs, device identifiers or signing keys. Do not modify iCloud originals or leave unauthenticated maintenance services running. Update current sections directly; preserve detailed history in Git or private records rather than appending conflicting current-state summaries.
+
+GitHub documentation, PR titles/descriptions and release notes use English. Private local handovers may use the operator’s preferred language.
