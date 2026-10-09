@@ -326,8 +326,9 @@ execute_command() {
     echo "$command_id" | grep -Eq '^[a-f0-9-]{36}$' || return 70
     echo "$expires" | grep -Eq '^[0-9]+$' || return 71
     now=$(date +%s)
-    [ "$expires" -ge "$now" ] || return 72
+    # A completed command stays completed even after its expiry.
     [ "$(cat "$LAST_COMMAND_FILE" 2>/dev/null || true)" != "$command_id" ] || return 0
+    [ "$expires" -ge "$now" ] || return 72
     status_action=$command_action
     # Older local server builds accept the established diagnose status label.
     # Keep the new, narrowly allowlisted command compatible without changing
@@ -369,6 +370,13 @@ last_heartbeat=0
 while :; do
     if [ -n "${SERVER_FALLBACK_URL:-}" ]; then
         SERVER_URL=$(choose_server "$PRIMARY_SERVER_URL" "$SERVER_FALLBACK_URL" "$auth_token") || { sleep "$POLL_SECONDS"; continue; }
+    fi
+    if [ "${PRESENCE_FRONTLIGHT_ENABLED:-0}" = 1 ]; then
+        presence=$(curl -fsS --connect-timeout 3 --max-time 8 -H "Authorization: Bearer $auth_token" "$SERVER_URL/v1/presence" 2>/dev/null || true)
+        case "$presence" in home|away|disabled) ;; *) presence=unknown ;; esac
+        mkdir -p "$APP_DIR/state"
+        printf '%s %s\n' "$presence" "$(date +%s)" > "$APP_DIR/state/presence.tmp"
+        mv "$APP_DIR/state/presence.tmp" "$APP_DIR/state/presence"
     fi
     if curl -fsS --connect-timeout 10 --max-time 30 -H "Authorization: Bearer $auth_token" "$SERVER_URL/v1/control/command" -o "$COMMAND_FILE"; then
         if head -n 1 "$COMMAND_FILE" | grep -q '^# kindle-photoframe-control-v1$'; then

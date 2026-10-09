@@ -7,3 +7,6 @@ AUTH_TOKEN_FILE=${AUTH_TOKEN_FILE:-$MANAGER_DIR/auth-token}
 POLL_SECONDS=${POLL_SECONDS:-60}
 HEARTBEAT_SECONDS=${HEARTBEAT_SECONDS:-300}
 DEVICE_ID=${DEVICE_ID:-kindle-voyage}
+
+# Enable only after household automations and initial presence are verified.
+PRESENCE_FRONTLIGHT_ENABLED=0

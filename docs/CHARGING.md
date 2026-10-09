@@ -13,3 +13,15 @@ Verification: node --test implementation/mac/charge-policy.test.mjs, node --chec
 Each device keeps a private append-only JSONL file in controlDir/charge-logs: kindle.jsonl and boox.jsonl. Entries include UTC timestamp, Sydney local time to seconds, device, battery percentage and the source telemetry timestamp. Successful and failed HomeKit commands record on/off separately from observed charging transitions; command completion alone does not prove a physical plug transition. Charging samples are recorded every five minutes when new valid telemetry is available. Missing or stale telemetry records an unavailable event, without fabricated battery readings. Manual Home app switching is only visible through subsequent charging telemetry, not as a precise plug action timestamp. Dry runs do not write logs or state.
 
 The subprocess runner closes its stdin after launching Shortcuts, since the CLI supports piped input and otherwise waits for EOF. Charge execution regression tests cover this and preserve failure diagnostics.
+
+## Battery alerts
+
+Run `battery-monitor.mjs` with the existing charging configuration once per minute in an independent user LaunchAgent. It never operates a plug. More than fifteen minutes without valid telemetry triggers an offline notification; fresh charging samples spanning forty-five minutes without a two-percentage-point increase trigger a stalled-charge notification. The monitor keeps separate state, logs alerts and recoveries in the per-device JSONL files, and deduplicates each active issue for six hours. Gaps in telemetry reset progress tracking. macOS notification settings and Focus can suppress display; a successful notification command does not prove delivery.
+
+After verifying the device status files and deploying the Mac runtime, install the optional monitor with:
+
+```sh
+./scripts/install-battery-monitor.sh /path/to/private/charge-config.json
+```
+
+Pass an existing runtime directory as the second argument when it differs from the public installer's default. Identify existing monitor LaunchAgents first to avoid duplicates. `PHOTOFRAME_NODE_PATH` can select an explicit tested Node executable for this helper and `install-mac.sh`. Monitoring notifications appear on the Mac, not automatically on a phone. No signing key, token or device log belongs in GitHub.

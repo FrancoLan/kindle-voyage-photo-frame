@@ -9,5 +9,7 @@
   "probeOutput": "/private/tmp/kindle-photoframe-probe.json",
   "listenHosts": [
     "127.0.0.1"
-  ]
+  ],
+  "presenceEnabled": false,
+  "presenceTokenFile": ""
 }

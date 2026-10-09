@@ -72,6 +72,12 @@ restore_automatic_frontlight() {
     fi
     current_auto=$(lipc-get-prop -i com.lab126.powerd flAuto 2>/dev/null || true)
     [ "$current_auto" = 1 ] || lipc-set-prop -i com.lab126.powerd flAuto 1 >/dev/null 2>&1 || true
+    # Retain native ambient adjustment, with a configurable minimum while home.
+    minimum=${FRONTLIGHT_MIN_LEVEL:-0}
+    current=$(lipc-get-prop -i com.lab126.powerd flIntensity 2>/dev/null || true)
+    if valid_intensity "$minimum" && valid_intensity "$current" && [ "$current" -lt "$minimum" ]; then
+        set_frontlight "$minimum"
+    fi
     restore_backlight_power
     rm -f "$STATE_DIR/frontlight-forced-off"
     touch "$STATE_DIR/frontlight-auto-active"
@@ -92,6 +98,25 @@ stop_stale_watchers() {
 
 apply_sensor_policy() {
     save_settings
+    if [ "${PRESENCE_FRONTLIGHT_ENABLED:-0}" = 1 ]; then
+        occupancy=unknown
+        occupancy_at=0
+        [ ! -r "$STATE_DIR/presence" ] || read occupancy occupancy_at < "$STATE_DIR/presence" 2>/dev/null || true
+        case "$occupancy_at" in ''|*[!0-9]*) occupancy_at=0 ;; esac
+        occupancy_age=$(( $(date +%s) - occupancy_at ))
+        if [ "$occupancy" != disabled ] && { [ "$occupancy" != home ] || [ "$occupancy_age" -gt 600 ] || [ "$occupancy_age" -lt 0 ]; }; then
+            lipc-set-prop -i com.lab126.powerd flAuto 0 >/dev/null 2>&1 || true
+            set_frontlight 0
+            set_backlight_power 4
+            touch "$STATE_DIR/frontlight-forced-off"
+            rm -f "$STATE_DIR/frontlight-auto-active"
+            condition=presence-off
+            lux=unavailable
+            target=0
+            record_policy_status
+            return 0
+        fi
+    fi
     lux=$(lipc-get-prop -i com.lab126.powerd alsLux 2>/dev/null || true)
     if ! valid_lux "$lux"; then
         condition=unknown

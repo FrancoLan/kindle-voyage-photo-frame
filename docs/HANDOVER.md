@@ -1,6 +1,6 @@
 # Maintenance handover
 
-Updated 2026-10-05. This describes the last verified deployment; query fresh status before treating any device as online. Earlier investigation history remains available in Git history. Private deployment records are not included.
+Updated 2026-10-09. This describes the last verified deployment; query fresh status before treating any device as online. Earlier investigation history remains available in Git history. Private deployment records are not included.
 
 ## Current release and verification
 
@@ -46,3 +46,13 @@ Use short-lived branches and PRs into `main`; run the complete `scripts/check.sh
 Never publish private configuration, album links, credentials, photos, diagnostic/battery logs, device identifiers or signing keys. Do not modify iCloud originals or leave unauthenticated maintenance services running. Update current sections directly; preserve detailed history in Git or private records rather than appending conflicting current-state summaries.
 
 GitHub documentation, PR titles/descriptions and release notes use English. Private local handovers may use the operator’s preferred language.
+
+## Presence, brightness and battery alerts in v0.4.12
+
+Optional Home automations report first-arrival and last-departure events using a credential restricted to occupancy writes. The Kindle gates ambient frontlight control on fresh occupancy state; away, unknown or stale device state forces hardware light power off. A configurable minimum intensity makes ambient-auto mode brighter while preserving already higher levels. Original UI lighting is restored on exit. Presence defaults to disabled until automations and initial household occupancy are verified. See [PRESENCE.md](PRESENCE.md).
+
+An independent read-only Mac monitor alerts after fifteen minutes without valid battery telemetry or forty-five minutes of fresh charging samples without a two-point increase. Alerts and recoveries are private and deduplicated; macOS notification settings/Focus affect delivery. It never changes charger thresholds or plugs. See [CHARGING.md](CHARGING.md).
+
+Physical validation confirmed Home event receipt, bright-room away/off (auto and intensity zero, hardware power off), home/ambient-auto restoration and the configured brightness floor. Battery-monitor regressions cover freshness, gaps, deduplication and recovery. Clear completed diagnostic commands to avoid repeated expired-command reports. After wireless updates, verify playback is running and request restart if necessary.
+
+Runtime upgrades require actual LAN checks and completion of any macOS incoming-network prompts. A local failure initially appeared runtime-specific, but the same Homebrew build passed after the user allowed incoming connections. Do not diagnose a Node or dependency defect from a listening socket or a permitted-rule listing alone. Pin a tested executable for a deployed server to avoid an unnoticed package-manager runtime change on restart.
