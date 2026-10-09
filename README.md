@@ -54,9 +54,9 @@ This repository does not include a jailbreak. See [Installation](docs/INSTALL.md
    cp implementation/mac/config.example.json config.local.json
    ```
 
-2. Replace `publicAlbumURL` in `config.local.json` with your iCloud Shared Album link.
+2. Replace `publicAlbumURL` in `config.local.json` with your iCloud Shared Album link. Set `listenHosts` to the Mac's explicit stable LAN IP address, or to both distinct Ethernet and Wi-Fi addresses when using fallback. The example only listens on loopback until you configure these addresses; wildcard addresses are rejected.
 
-3. Install the Mac services:
+3. Install the Mac services (optionally set `PHOTOFRAME_NODE_PATH` to a tested Node executable):
 
    ```sh
    ./scripts/install-mac.sh ./config.local.json
