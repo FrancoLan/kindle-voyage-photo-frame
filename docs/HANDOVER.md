@@ -4,9 +4,9 @@ Updated 2026-10-09. This describes the last verified deployment; query fresh sta
 
 ## Current release and verification
 
-- Release [v0.4.11](https://github.com/FrancoLan/kindle-voyage-photo-frame/releases/tag/v0.4.11) is published from `main`, with a source ZIP and SHA-256 checksum. PR #5 merged as `b4bc19f`.
+- Release [v0.4.12](https://github.com/FrancoLan/kindle-voyage-photo-frame/releases/tag/v0.4.12) is published from `main`, with a source ZIP and SHA-256 checksum. Feature PR #7 and setup PR #8 are merged; release commit is `f7889d1`.
 - BOOX companion [v1.2.6](https://github.com/FrancoLan/boox-n96-photo-frame/releases/tag/v1.2.6) includes battery diagnostics and primary/backup endpoint selection; its APK uses the original deployment signing key.
-- Complete project checks and CI passed, including 11 Node regressions and shell fallback cases. Physical tests verified all four charging shortcut directions, background and locked-session shutdown, charging samples, backup communication after Ethernet removal, and return to the primary after reconnection.
+- Complete project checks and CI passed, including 20 Node regressions and shell fallback cases. Physical tests verified all four charging shortcut directions, background and locked-session shutdown, charging samples, backup communication after Ethernet removal, and return to the primary after reconnection.
 - Final dual-interface settings have not been reboot-tested. Router address reservations must be verified separately; an unanswered ping does not prove an address is reserved.
 
 ## Runtime and device behavior
