@@ -14,9 +14,9 @@ fi
 SCRIPT_DIR=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
 REPO_ROOT=$(CDPATH= cd -- "$SCRIPT_DIR/.." && pwd)
 CONFIG_INPUT=$(CDPATH= cd -- "$(dirname -- "$1")" && printf '%s/%s\n' "$PWD" "$(basename -- "$1")")
-NODE=$(command -v node || true)
+NODE=${PHOTOFRAME_NODE_PATH:-$(command -v node || true)}
 SWIFTC=$(command -v swiftc || true)
-[ -n "$NODE" ] || { echo "Node.js is required." >&2; exit 1; }
+[ -n "$NODE" ] && [ -x "$NODE" ] || { echo "Node.js is required." >&2; exit 1; }
 [ -n "$SWIFTC" ] || { echo "The Xcode Command Line Tools (swiftc) are required." >&2; exit 1; }
 
 SUPPORT="$HOME/Library/Application Support/KindleVoyagePhotoFrame"

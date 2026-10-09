@@ -4,6 +4,7 @@ import { createReadStream } from 'node:fs';
 import { randomBytes, timingSafeEqual } from 'node:crypto';
 import { mkdir, readFile, rename, stat, writeFile } from 'node:fs/promises';
 import { createServer } from 'node:http';
+import { matchPresenceEvent, readPresence, writePresence } from './presence.mjs';
 import { bindInterfaces } from './bind-interfaces.mjs';
 import { basename, dirname, extname, join, resolve } from 'node:path';
 
@@ -135,8 +136,24 @@ function authorized(request) {
 
 const server = createServer(async (request, response) => {
   const url = new URL(request.url || '/', 'http://localhost');
+  // A dedicated event token permits only occupancy writes, never device control.
+  if (url.pathname.startsWith('/v1/presence/event/')) {
+    if (!config.presenceEnabled || !config.presenceTokenFile) { response.writeHead(503).end('Disabled\n'); return; }
+    let token = ''; try { token = (await readFile(config.presenceTokenFile, 'utf8')).trim(); } catch {}
+    const state = matchPresenceEvent(url.pathname, token);
+    if (!state) { response.writeHead(401).end('Unauthorized\n'); return; }
+    if (request.method !== 'POST') { response.writeHead(405, {Allow:'POST'}).end(); return; }
+    try { await readRequestBytes(request,128); await mkdir(controlDir,{recursive:true}); await writePresence(controlDir,state); response.writeHead(204, {'Cache-Control':'no-store'}).end(); }
+    catch { response.writeHead(500).end('Unable to save presence\n'); }
+    return;
+  }
   if (!authorized(request)) {
     response.writeHead(401, { 'WWW-Authenticate': 'Bearer', 'Cache-Control': 'no-store' }).end('Unauthorized\n');
+    return;
+  }
+  if (request.method === 'GET' && url.pathname === '/v1/presence') {
+    try { response.writeHead(200, {'Content-Type':'text/plain','Cache-Control':'no-store'}).end(await readPresence(controlDir,config.presenceEnabled) + '\n'); }
+    catch { response.writeHead(503).end('unknown\n'); }
     return;
   }
   const diagnosticMatch = url.pathname.match(/^\/v1\/control\/diagnostics\/([a-f0-9-]{36})$/);

@@ -21,6 +21,8 @@ The Mac downloads the album, applies face-aware framing for the Voyage's 1072×1
 - Uses a full high-fidelity refresh for automatic photo changes.
 - Turns the frontlight off at or below 100 lux and restores automatic brightness at or above 150 lux, checking every five seconds. In the 100–150 lux hysteresis band it preserves the current policy; a fresh session starts with the light off.
 - Supports authenticated wireless status, restart, update, diagnostics, disable, and uninstall commands on the LAN.
+- Optionally gates the frontlight on household arrival/departure and sets a minimum ambient-auto brightness; see [presence setup](docs/PRESENCE.md).
+- Supports battery-controlled HomeKit charging and independent offline/stalled-charge alerts for Kindle and BOOX; see [charging and monitoring](docs/CHARGING.md).
 
 ## How it works
 

@@ -114,3 +114,54 @@ assert_value bl_power 1
 [ -f "$TMP/device/state/frontlight-auto-active" ]
 
 echo "Frontlight ambient-light policy checks passed."
+
+# Presence must override a bright or unavailable sensor, then allow auto on return.
+printf '%s\n' 'PRESENCE_FRONTLIGHT_ENABLED=1' >> "$TMP/config.sh"
+printf 'away %s\n' "$(date +%s)" > "$TMP/device/state/presence"
+printf '%s\n' 500 > "$MOCK_STATE/alsLux"
+apply
+assert_value flIntensity 0
+assert_value flAuto 0
+assert_value bl_power 4
+printf 'home %s\n' "$(date +%s)" > "$TMP/device/state/presence"
+apply
+assert_value flIntensity 4
+assert_value flAuto 1
+assert_value bl_power 1
+printf 'home 1\n' > "$TMP/device/state/presence"
+apply
+assert_value flIntensity 0
+assert_value flAuto 0
+rm "$TMP/device/state/presence"
+printf '%s\n' invalid > "$MOCK_STATE/alsLux"
+apply
+assert_value flIntensity 0
+printf 'disabled %s\n' "$(date +%s)" > "$TMP/device/state/presence"
+printf '%s\n' 500 > "$MOCK_STATE/alsLux"
+apply
+assert_value flIntensity 4
+assert_value flAuto 1
+echo 'Presence-gated frontlight checks passed.'
+
+# The brightness floor only applies to ambient-auto mode, never away or dark.
+printf '%s\n' 'FRONTLIGHT_MIN_LEVEL=8' >> "$TMP/config.sh"
+apply
+assert_value flIntensity 8
+assert_value flAuto 1
+printf 'away %s\n' "$(date +%s)" > "$TMP/device/state/presence"
+apply
+assert_value flIntensity 0
+assert_value flAuto 0
+assert_value bl_power 4
+printf 'home %s\n' "$(date +%s)" > "$TMP/device/state/presence"
+printf '%s\n' 20 > "$MOCK_STATE/alsLux"
+apply
+assert_value flIntensity 0
+printf '%s\n' 300 > "$MOCK_STATE/alsLux"
+apply
+assert_value flIntensity 8
+assert_value flAuto 1
+printf '%s\n' 12 > "$MOCK_STATE/flIntensity"
+apply
+assert_value flIntensity 12
+echo 'Frontlight floor checks passed.'

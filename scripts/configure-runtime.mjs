@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 
 import { readFile, writeFile } from 'node:fs/promises';
+import { isIP } from 'node:net';
 import { resolve } from 'node:path';
 
 const [inputConfig, outputConfig, supportDir, runtimeDir, dataDir, packageSourceDir, nodePath, logDir, templateDir, launchAgentDir] = process.argv.slice(2);
@@ -15,7 +16,9 @@ if (!/^https:\/\/photos\.icloud\.com\/shared\/album\//.test(config.publicAlbumUR
 config.dataDir = resolve(dataDir);
 config.authTokenFile = resolve(dataDir, 'server-token');
 config.packageSourceDir = resolve(packageSourceDir);
-config.listenHost = config.listenHost || '0.0.0.0';
+config.listenHost = config.listenHost || '127.0.0.1';
+config.listenHosts = config.listenHosts || [config.listenHost];
+if (!Array.isArray(config.listenHosts) || !config.listenHosts.length || config.listenHosts.some(host => !isIP(host) || host === '0.0.0.0' || host === '::')) throw new Error('Configure explicit interface IP addresses');
 config.port = Number(config.port || 8787);
 if (!Number.isInteger(config.port) || config.port < 1 || config.port > 65535) throw new Error('port is invalid');
 await writeFile(outputConfig, `${JSON.stringify(config, null, 2)}\n`, { mode: 0o600 });
